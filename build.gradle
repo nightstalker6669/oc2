@@ -53,6 +53,37 @@ final def hasGithubPackageCredentials =
 final def hasLocalSednaMc = file("../sedna-mc").exists()
 final def requestedTaskNames = gradle.startParameter.taskNames.collect { it.toLowerCase(Locale.ROOT) }
 final def hasClientRunRequested = requestedTaskNames.any { it.contains("runclient") }
+final def clientRunConfigDir = layout.projectDirectory.dir("run/config").asFile
+final def clientRunFmlConfigFile = layout.projectDirectory.file("run/config/fml.toml").asFile
+
+final def configureClientRunFmlConfig = tasks.register("configureClientRunFmlConfig") {
+    outputs.file(clientRunFmlConfigFile)
+
+    doLast {
+        clientRunConfigDir.mkdirs()
+
+        final def existingLines = clientRunFmlConfigFile.exists()
+            ? clientRunFmlConfigFile.readLines(StandardCharsets.UTF_8.name())
+            : []
+
+        final def updatedLines = []
+        def sawEarlyWindowControl = false
+        for (final def line : existingLines) {
+            if (line.trim().startsWith("earlyWindowControl")) {
+                updatedLines.add("earlyWindowControl = false")
+                sawEarlyWindowControl = true
+            } else {
+                updatedLines.add(line)
+            }
+        }
+
+        if (!sawEarlyWindowControl) {
+            updatedLines.add("earlyWindowControl = false")
+        }
+
+        clientRunFmlConfigFile.setText(updatedLines.join(System.lineSeparator()) + System.lineSeparator(), StandardCharsets.UTF_8.name())
+    }
+}
 
 configurations {
     modRuntime
@@ -262,4 +293,8 @@ idea {
 
 test {
     useJUnitPlatform()
+}
+
+tasks.matching { it.name == "runClient" }.configureEach {
+    dependsOn configureClientRunFmlConfig
 }

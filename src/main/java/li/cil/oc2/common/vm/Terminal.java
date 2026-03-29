@@ -765,10 +765,15 @@ public final class Terminal {
             RenderSystem.setShaderTexture(0, LOCATION_FONT_TEXTURE);
 
             for (final VertexBuffer line : lines) {
-                if (line != null) {
-                    line.drawWithShader(stack.last().pose(), projectionMatrix, shader);
+                if (line == null) {
+                    continue;
                 }
+
+                line.bind();
+                line.drawWithShader(stack.last().pose(), projectionMatrix, shader);
             }
+
+            VertexBuffer.unbind();
 
             RenderSystem.depthMask(true);
         }
@@ -803,8 +808,11 @@ public final class Terminal {
                     lines[row] = new VertexBuffer(VertexBuffer.Usage.STATIC);
                 }
 
+                lines[row].bind();
                 lines[row].upload(builder.buildOrThrow());
             }
+
+            VertexBuffer.unbind();
         }
 
         private boolean hasRenderableContent(final int row) {
