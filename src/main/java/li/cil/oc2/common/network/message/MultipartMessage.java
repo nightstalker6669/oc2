@@ -143,7 +143,7 @@ public final class MultipartMessage extends AbstractMessage {
     @Override
     protected void handleMessage(final Supplier<NetworkEvent.Context> contextSupplier) {
         try {
-            final ByteBuf buffer = MULTIPART_MESSAGE_BUFFER_CACHE.get(lastAssignedMultipartMessageId, Unpooled::buffer);
+            final ByteBuf buffer = MULTIPART_MESSAGE_BUFFER_CACHE.get(multipartMessageId, Unpooled::buffer);
             if (buffer.capacity() == 0) {
                 return; // Invalidated entry due to being over-sized.
             }
@@ -151,12 +151,12 @@ public final class MultipartMessage extends AbstractMessage {
             buffer.writeBytes(data);
             if (buffer.readableBytes() > MAX_MULTIPART_MESSAGE_SIZE) {
                 LOGGER.error("Received over-sized multipart message from client [{}], ignoring.", contextSupplier.get().getSender());
-                MULTIPART_MESSAGE_BUFFER_CACHE.put(lastAssignedMultipartMessageId, Unpooled.buffer(0));
+                MULTIPART_MESSAGE_BUFFER_CACHE.put(multipartMessageId, Unpooled.buffer(0));
                 return;
             }
 
             if (isFinalPart) {
-                MULTIPART_MESSAGE_BUFFER_CACHE.invalidate(lastAssignedMultipartMessageId);
+                MULTIPART_MESSAGE_BUFFER_CACHE.invalidate(multipartMessageId);
 
                 final Entry entry = ENTRY_BY_ID.get(messageId);
                 if (entry == null) {

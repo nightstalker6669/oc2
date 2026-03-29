@@ -784,6 +784,15 @@ public final class Terminal {
                     continue;
                 }
 
+                if (!hasRenderableContent(row)) {
+                    final VertexBuffer line = lines[row];
+                    if (line != null) {
+                        line.close();
+                        lines[row] = null;
+                    }
+                    continue;
+                }
+
                 final Matrix4f matrix = new Matrix4f().translation(0f, row * CHAR_HEIGHT, 0f);
                 final BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
 
@@ -796,6 +805,32 @@ public final class Terminal {
 
                 lines[row].upload(builder.buildOrThrow());
             }
+        }
+
+        private boolean hasRenderableContent(final int row) {
+            for (int col = 0, index = row * WIDTH; col < WIDTH; col++, index++) {
+                final byte colors = terminal.colors[index];
+                final byte style = terminal.styles[index];
+
+                if ((style & STYLE_HIDDEN_MASK) != 0) {
+                    continue;
+                }
+
+                final int[] palette = (style & STYLE_DIM_MASK) != 0 ? DIM_COLORS : COLORS;
+                final int foregroundIndex = (colors >> COLOR_FOREGROUND_SHIFT) & COLOR_MASK;
+                final int backgroundIndex = colors & COLOR_MASK;
+                final int background = palette[(style & STYLE_INVERT_MASK) == 0 ? backgroundIndex : foregroundIndex];
+                if (background != palette[0]) {
+                    return true;
+                }
+
+                final int character = terminal.buffer[index] & 0xFF;
+                if (isPrintableCharacter((char) character) || (style & STYLE_UNDERLINE_MASK) != 0) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void renderBackground(final Matrix4f matrix, final BufferBuilder buffer, final int row) {

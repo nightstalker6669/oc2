@@ -22,7 +22,7 @@ public abstract class AbstractGroupingDeviceBusElement<TEntry extends AbstractGr
         public abstract Set<TEntry> getEntries();
     }
 
-    protected interface Entry {
+    protected static interface Entry {
         Optional<String> getDeviceDataKey();
 
         OptionalInt getDeviceEnergyConsumption();

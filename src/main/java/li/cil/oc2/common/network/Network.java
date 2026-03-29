@@ -14,6 +14,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
@@ -150,5 +152,10 @@ public final class Network {
 
     private static int getNextPacketId() {
         return nextPacketId++;
+    }
+
+    @SubscribeEvent
+    public static void handleRegisterPayloadHandlers(final RegisterPayloadHandlersEvent event) {
+        INSTANCE.register(event);
     }
 }

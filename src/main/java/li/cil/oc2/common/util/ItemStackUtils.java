@@ -11,16 +11,19 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
 import java.util.Optional;
 
+import static li.cil.oc2.common.Constants.BLOCK_ENTITY_TAG_NAME_IN_ITEM;
 import static li.cil.oc2.common.Constants.MOD_TAG_NAME;
 
 public final class ItemStackUtils {
@@ -37,6 +40,19 @@ public final class ItemStackUtils {
     public static CompoundTag getOrCreateModDataTag(final ItemStack stack) {
         CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> NBTUtils.getOrCreateChildTag(tag, MOD_TAG_NAME));
         return NBTUtils.getOrCreateChildTag(stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).getUnsafe(), MOD_TAG_NAME);
+    }
+
+    public static CompoundTag getLegacyBlockEntityDataTag(final ItemStack stack) {
+        return NBTUtils.getChildTag(getModDataTag(stack), BLOCK_ENTITY_TAG_NAME_IN_ITEM);
+    }
+
+    public static CompoundTag getBlockEntityDataTag(final ItemStack stack) {
+        final CustomData blockEntityData = stack.getOrDefault(DataComponents.BLOCK_ENTITY_DATA, CustomData.EMPTY);
+        return blockEntityData.isEmpty() ? getLegacyBlockEntityDataTag(stack) : blockEntityData.getUnsafe();
+    }
+
+    public static void setBlockEntityData(final ItemStack stack, final BlockEntityType<?> blockEntityType, final CompoundTag tag) {
+        BlockItem.setBlockEntityData(stack, blockEntityType, tag.copy());
     }
 
     public static CompoundTag save(final ItemStack stack, final HolderLookup.Provider registries) {

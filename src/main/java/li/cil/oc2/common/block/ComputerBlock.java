@@ -92,8 +92,8 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
     ///////////////////////////////////////////////////////////////////
 
     public void fillItemCategory(final CreativeModeTab group, final NonNullList<ItemStack> items) {
-        items.add(getComputerWithFlash());
-        items.add(getPreconfiguredComputer());
+        items.add(createComputerWithFlash());
+        items.add(createPreconfiguredComputer());
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -249,8 +249,8 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
 
     ///////////////////////////////////////////////////////////////////
 
-    private ItemStack getComputerWithFlash() {
-        final ItemStack computer = new ItemStack(this);
+    public static ItemStack createComputerWithFlash() {
+        final ItemStack computer = new ItemStack(Items.COMPUTER.get());
 
         final CompoundTag itemsTag = NBTUtils.getOrCreateChildTag(ItemStackUtils.getOrCreateModDataTag(computer), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME);
         itemsTag.put(DeviceTypes.FLASH_MEMORY.getId().toString(), makeInventoryTag(
@@ -260,8 +260,8 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
         return computer;
     }
 
-    private ItemStack getPreconfiguredComputer() {
-        final ItemStack computer = getComputerWithFlash();
+    public static ItemStack createPreconfiguredComputer() {
+        final ItemStack computer = createComputerWithFlash();
 
         final CompoundTag itemsTag = NBTUtils.getOrCreateChildTag(ItemStackUtils.getOrCreateModDataTag(computer), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME);
         itemsTag.put(DeviceTypes.MEMORY.getId().toString(), makeInventoryTag(

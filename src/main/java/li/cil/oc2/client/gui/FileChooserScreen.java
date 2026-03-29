@@ -94,6 +94,13 @@ public final class FileChooserScreen extends Screen {
         Minecraft.getInstance().setScreen(screen);
     }
 
+    public static void closeIfOpen() {
+        final Screen currentScreen = Minecraft.getInstance().screen;
+        if (currentScreen instanceof final FileChooserScreen screen) {
+            screen.cancel();
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////
 
     public FileChooserScreen(final FileChooserCallback callback, final boolean isLoad) {

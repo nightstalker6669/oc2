@@ -190,7 +190,7 @@ public abstract class AbstractBlockDeviceBusElement extends AbstractGroupingDevi
         }
     }
 
-    protected final class BlockEntry implements Entry {
+    protected final class BlockEntry implements AbstractGroupingDeviceBusElement.Entry {
         private final Invalidatable<BlockDeviceInfo> deviceInfo;
         @Nullable private final String dataKey;
         private final Device device;

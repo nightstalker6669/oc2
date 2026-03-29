@@ -18,6 +18,7 @@ import li.cil.oc2.common.item.ItemRenameHandler;
 import li.cil.oc2.common.item.ItemGroup;
 import li.cil.oc2.common.item.Items;
 import li.cil.oc2.common.item.crafting.RecipeSerializers;
+import li.cil.oc2.common.network.Network;
 import li.cil.oc2.common.serialization.ceres.Serializers;
 import li.cil.oc2.common.tags.BlockTags;
 import li.cil.oc2.common.tags.ItemTags;
@@ -39,6 +40,7 @@ public final class Main {
         Sedna.initialize();
         DeviceTreeProviders.initialize();
         Serializers.initialize();
+        Network.initialize();
 
         ConfigManager.add(Config::new);
         ConfigManager.initialize(modContainer);
@@ -70,6 +72,7 @@ public final class Main {
         ItemRenameHandler.initialize();
 
         modEventBus.register(CommonSetup.class);
+        modEventBus.register(Network.class);
         IMC.initialize(modEventBus);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.register(ClientSetup.class);

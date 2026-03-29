@@ -211,7 +211,9 @@ public final class FileImportExportCardItemDevice extends AbstractItemRPCDevice 
         state = State.IMPORT_REQUESTED;
         importingId = nextImportId++;
         synchronized (importingDevices) {
-            importingDevices.put(importingId, new ImportFileRequest(this));
+            final ImportFileRequest request = new ImportFileRequest(this);
+            request.PendingPlayers.addAll(players);
+            importingDevices.put(importingId, request);
         }
 
         for (final ServerPlayer serverPlayer : players) {

@@ -1,4 +1,5 @@
 import java.nio.charset.StandardCharsets
+import java.util.Locale
 
 plugins {
     id "idea"
@@ -50,6 +51,8 @@ final def hasGithubPackageCredentials =
     (project.hasProperty("gpr.user") && project.hasProperty("gpr.key")) ||
         (System.getenv("GITHUB_ACTOR") && System.getenv("GITHUB_TOKEN"))
 final def hasLocalSednaMc = file("../sedna-mc").exists()
+final def requestedTaskNames = gradle.startParameter.taskNames.collect { it.toLowerCase(Locale.ROOT) }
+final def hasClientRunRequested = requestedTaskNames.any { it.contains("runclient") }
 
 configurations {
     modRuntime
@@ -107,6 +110,10 @@ dependencies {
     testImplementation "li.cil.sedna:sedna-buildroot:0.0.8"
 
     compileOnly "curse.maven:markdown-manual-reimagined-${markdown_manual_project_id}:${markdown_manual_file_id}"
+    if (hasClientRunRequested) {
+        modRuntime "dev.architectury:architectury-neoforge:${architectury_version}"
+        modRuntime "curse.maven:markdown-manual-reimagined-${markdown_manual_project_id}:${markdown_manual_file_id}"
+    }
     if (hasLocalSednaMc) {
         // The runtime Sedna mod stays separate from the core Sedna library and is
         // supplied by the sibling sedna-mc build via settings.gradle substitution.

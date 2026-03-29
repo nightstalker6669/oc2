@@ -102,7 +102,7 @@ public final class TooltipUtils {
     }
 
     public static void addBlockEntityInventoryInformation(final ItemStack stack, final List<Component> tooltip) {
-        addInventoryInformation(NBTUtils.getChildTag(ItemStackUtils.getModDataTag(stack), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME), tooltip);
+        addInventoryInformation(NBTUtils.getChildTag(ItemStackUtils.getBlockEntityDataTag(stack), ITEMS_TAG_NAME), tooltip);
     }
 
     public static void addEntityInventoryInformation(final ItemStack stack, final List<Component> tooltip) {

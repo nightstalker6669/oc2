@@ -2,6 +2,7 @@
 
 package li.cil.oc2.data;
 
+import li.cil.oc2.common.block.ComputerBlock;
 import li.cil.oc2.common.item.Items;
 import net.minecraft.advancements.Criterion;
 import net.minecraft.advancements.critereon.InventoryChangeTrigger;
@@ -30,7 +31,7 @@ public final class ModRecipesProvider extends RecipeProvider {
     @Override
     protected void buildRecipes(final RecipeOutput consumer) {
         ShapedRecipeBuilder
-            .shaped(DEVICE_CATEGORY, Items.COMPUTER.get())
+            .shaped(DEVICE_CATEGORY, ComputerBlock.createComputerWithFlash())
             .pattern("ICI")
             .pattern("XTX")
             .pattern("IBI")

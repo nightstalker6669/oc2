@@ -146,7 +146,7 @@ public abstract class AbstractItemDeviceBusElement extends AbstractGroupingDevic
         }
     }
 
-    protected record ItemEntry(ItemDeviceInfo deviceInfo) implements Entry {
+    protected record ItemEntry(ItemDeviceInfo deviceInfo) implements AbstractGroupingDeviceBusElement.Entry {
         @Override
         public Optional<String> getDeviceDataKey() {
             return optionalKey(deviceInfo.provider);
