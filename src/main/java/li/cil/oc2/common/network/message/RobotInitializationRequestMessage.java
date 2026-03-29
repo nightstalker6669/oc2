@@ -5,7 +5,7 @@ package li.cil.oc2.common.network.message;
 import li.cil.oc2.common.entity.Robot;
 import li.cil.oc2.common.network.MessageUtils;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public final class RobotInitializationRequestMessage extends AbstractMessage {
     private int entityId;

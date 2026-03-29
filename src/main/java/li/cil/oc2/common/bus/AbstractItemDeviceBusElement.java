@@ -12,6 +12,7 @@ import li.cil.oc2.common.bus.device.util.Devices;
 import li.cil.oc2.common.bus.device.util.ItemDeviceInfo;
 import li.cil.oc2.common.util.ItemDeviceUtils;
 import li.cil.oc2.common.util.NBTTagIds;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -90,7 +91,7 @@ public abstract class AbstractItemDeviceBusElement extends AbstractGroupingDevic
             return;
         }
 
-        final ResourceLocation registryName = query.getItemStack().getItem().getRegistryName();
+        final ResourceLocation registryName = BuiltInRegistries.ITEM.getKey(query.getItemStack().getItem());
         if (registryName != null) {
             final String itemName = registryName.toString();
             entries.add(new ItemEntry(new ItemDeviceInfo(null, new TypeNameRPCDevice(itemName), 0)));
@@ -101,7 +102,7 @@ public abstract class AbstractItemDeviceBusElement extends AbstractGroupingDevic
     protected void onEntryRemoved(final String dataKey, final CompoundTag tag, @Nullable final ItemDeviceQuery query) {
         super.onEntryRemoved(dataKey, tag, query);
         final IForgeRegistry<ItemDeviceProvider> registry = Providers.itemDeviceProviderRegistry();
-        final ItemDeviceProvider provider = registry.getValue(new ResourceLocation(dataKey));
+        final ItemDeviceProvider provider = registry.getValue(ResourceLocation.parse(dataKey));
         if (provider != null) {
             provider.unmount(query, tag);
         }

@@ -10,7 +10,8 @@ import li.cil.oc2.common.vm.VMRunState;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public final class RobotInitializationMessage extends AbstractMessage {
     private int entityId;
@@ -40,7 +41,7 @@ public final class RobotInitializationMessage extends AbstractMessage {
         entityId = buffer.readVarInt();
         busState = buffer.readEnum(CommonDeviceBusController.BusState.class);
         runState = buffer.readEnum(VMRunState.class);
-        bootError = buffer.readComponent();
+        bootError = buffer.readNullable(ComponentSerialization.TRUSTED_CONTEXT_FREE_STREAM_CODEC);
         terminal = buffer.readNbt();
     }
 
@@ -49,7 +50,7 @@ public final class RobotInitializationMessage extends AbstractMessage {
         buffer.writeVarInt(entityId);
         buffer.writeEnum(busState);
         buffer.writeEnum(runState);
-        buffer.writeComponent(bootError);
+        buffer.writeNullable(bootError, ComponentSerialization.TRUSTED_CONTEXT_FREE_STREAM_CODEC);
         buffer.writeNbt(terminal);
     }
 

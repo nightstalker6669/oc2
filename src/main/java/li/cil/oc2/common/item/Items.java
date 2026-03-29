@@ -10,6 +10,7 @@ import li.cil.oc2.common.util.RegistryUtils;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
+import net.neoforged.fml.ModList;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
@@ -37,7 +38,7 @@ public final class Items {
     ///////////////////////////////////////////////////////////////////
 
     public static final RegistryObject<Item> WRENCH = register("wrench", WrenchItem::new);
-    public static final RegistryObject<Item> MANUAL = register("manual", ManualItem::new);
+    public static final RegistryObject<Item> MANUAL = register("manual", Items::createManualItem);
 
     public static final RegistryObject<Item> ROBOT = register("robot", RobotItem::new);
     public static final RegistryObject<NetworkCableItem> NETWORK_CABLE = register("network_cable", NetworkCableItem::new);
@@ -92,6 +93,18 @@ public final class Items {
 
     private static <T extends Item> RegistryObject<T> register(final String name, final Supplier<T> factory) {
         return ITEMS.register(name, factory);
+    }
+
+    private static Item createManualItem() {
+        if (ModList.get().isLoaded("markdown_manual")) {
+            try {
+                final Class<?> manualItemClass = Class.forName("li.cil.oc2.common.item.ManualItem");
+                return (Item) manualItemClass.getConstructor().newInstance();
+            } catch (final ReflectiveOperationException | LinkageError ignored) {
+            }
+        }
+
+        return new ModItem();
     }
 
     private static <T extends Block> RegistryObject<Item> register(final RegistryObject<T> block) {

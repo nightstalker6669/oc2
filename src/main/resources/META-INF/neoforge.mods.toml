@@ -1,0 +1,50 @@
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "${mod_license}"
+issueTrackerURL = "https://github.com/fnuecke/oc2/issues"
+
+[[accessTransformers]]
+file = "META-INF/accesstransformer.cfg"
+
+[[mixins]]
+config = "mixins.oc2.json"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${jar_version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+description = '''
+${mod_description}
+'''
+
+[[dependencies.oc2]]
+modId = "neoforge"
+type = "required"
+versionRange = "${neo_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.oc2]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.oc2]]
+modId = "sedna"
+type = "required"
+versionRange = "${sedna_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.oc2]]
+modId = "markdown_manual"
+type = "optional"
+versionRange = "${markdown_manual_version_range}"
+ordering = "NONE"
+side = "CLIENT"
+
+[features.oc2]
+javaVersion = "[21,)"

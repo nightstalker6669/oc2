@@ -2,7 +2,6 @@
 
 package li.cil.oc2.common.util;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import li.cil.oc2.api.bus.device.DeviceType;
@@ -16,16 +15,13 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.StringSplitter;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.locale.Language;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.*;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.client.ForgeHooksClient;
-import net.minecraftforge.registries.ForgeRegistry;
-import net.minecraftforge.registries.RegistryManager;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -36,7 +32,7 @@ import static li.cil.oc2.common.util.TextFormatUtils.withFormat;
 
 public final class TooltipUtils {
     private static final MutableComponent DEVICE_NEEDS_REBOOT =
-        new TranslatableComponent(Constants.TOOLTIP_DEVICE_NEEDS_REBOOT)
+        Component.translatable(Constants.TOOLTIP_DEVICE_NEEDS_REBOOT)
             .withStyle(s -> s.withColor(TextColor.fromLegacyFormat(ChatFormatting.YELLOW)));
 
     private static final ThreadLocal<List<ItemStack>> ITEM_STACKS = ThreadLocal.withInitial(ArrayList::new);
@@ -44,33 +40,32 @@ public final class TooltipUtils {
 
     ///////////////////////////////////////////////////////////////////
 
-    public static void drawTooltip(final PoseStack poseStack, final List<? extends FormattedText> tooltip, final int x, final int y) {
-        drawTooltip(poseStack, tooltip, x, y, 200, ItemStack.EMPTY);
+    public static void drawTooltip(final GuiGraphics graphics, final List<? extends FormattedText> tooltip, final int x, final int y) {
+        drawTooltip(graphics, tooltip, x, y, 200, ItemStack.EMPTY);
     }
 
-    public static void drawTooltip(final PoseStack poseStack, final List<? extends FormattedText> tooltip, final int x, final int y, final int widthHint) {
-        drawTooltip(poseStack, tooltip, x, y, widthHint, ItemStack.EMPTY);
+    public static void drawTooltip(final GuiGraphics graphics, final List<? extends FormattedText> tooltip, final int x, final int y, final int widthHint) {
+        drawTooltip(graphics, tooltip, x, y, widthHint, ItemStack.EMPTY);
     }
 
-    public static void drawTooltip(final PoseStack poseStack, final List<? extends FormattedText> tooltip, final int x, final int y, final int widthHint, final ItemStack itemStack) {
+    public static void drawTooltip(final GuiGraphics graphics, final List<? extends FormattedText> tooltip, final int x, final int y, final int widthHint, final ItemStack itemStack) {
         final Minecraft minecraft = Minecraft.getInstance();
-        final Screen screen = minecraft.screen;
-        if (screen == null) {
+        if (minecraft.screen == null) {
             return;
         }
 
-        final int availableWidth = Math.max(x, screen.width - x);
+        final int availableWidth = Math.max(x, minecraft.screen.width - x);
         final int targetWidth = Math.min(availableWidth, widthHint);
-        final Font font = ForgeHooksClient.getTooltipFont(null, itemStack, minecraft.font);
+        final Font font = minecraft.font;
 
         final boolean needsWrapping = tooltip.stream().anyMatch(line -> font.width(line) > targetWidth);
         if (!needsWrapping) {
-            screen.renderComponentTooltip(poseStack, tooltip, x, y, font, itemStack);
+            graphics.renderComponentTooltip(font, tooltip, x, y, itemStack);
         } else {
             final StringSplitter splitter = font.getSplitter();
             final List<? extends FormattedText> wrappedTooltip = tooltip.stream().flatMap(line ->
                 splitter.splitLines(line, targetWidth, Style.EMPTY).stream()).toList();
-            screen.renderComponentTooltip(poseStack, wrappedTooltip, x, y, font, itemStack);
+            graphics.renderComponentTooltip(font, wrappedTooltip, x, y, itemStack);
         }
     }
 
@@ -82,7 +77,7 @@ public final class TooltipUtils {
         final String translationKey = stack.getDescriptionId() + Constants.TOOLTIP_DESCRIPTION_SUFFIX;
         final Language language = Language.getInstance();
         if (language.has(translationKey)) {
-            final TranslatableComponent description = new TranslatableComponent(translationKey);
+            final Component description = Component.translatable(translationKey);
             tooltip.add(withFormat(description, ChatFormatting.GRAY));
         }
 
@@ -101,16 +96,16 @@ public final class TooltipUtils {
 
         if (energyConsumption > 0) {
             final MutableComponent energy = withFormat(String.valueOf(energyConsumption), ChatFormatting.GREEN);
-            tooltip.add(withFormat(new TranslatableComponent(Constants.TOOLTIP_ENERGY_CONSUMPTION, energy), ChatFormatting.GRAY));
+            tooltip.add(withFormat(Component.translatable(Constants.TOOLTIP_ENERGY_CONSUMPTION, energy), ChatFormatting.GRAY));
         }
     }
 
     public static void addBlockEntityInventoryInformation(final ItemStack stack, final List<Component> tooltip) {
-        addInventoryInformation(NBTUtils.getChildTag(stack.getTag(), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME), tooltip);
+        addInventoryInformation(NBTUtils.getChildTag(ItemStackUtils.getModDataTag(stack), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME), tooltip);
     }
 
     public static void addEntityInventoryInformation(final ItemStack stack, final List<Component> tooltip) {
-        addInventoryInformation(NBTUtils.getChildTag(stack.getTag(), MOD_TAG_NAME, ITEMS_TAG_NAME), tooltip);
+        addInventoryInformation(NBTUtils.getChildTag(ItemStackUtils.getModDataTag(stack), MOD_TAG_NAME, ITEMS_TAG_NAME), tooltip);
     }
 
     public static void addInventoryInformation(final CompoundTag itemsTag, final List<Component> tooltip) {
@@ -133,10 +128,10 @@ public final class TooltipUtils {
 
         for (int i = 0; i < itemStacks.size(); i++) {
             final ItemStack itemStack = itemStacks.get(i);
-            tooltip.add(new TextComponent("- ")
+            tooltip.add(Component.literal("- ")
                 .append(itemStack.getDisplayName())
                 .withStyle(style -> style.withColor(TextColor.fromLegacyFormat(ChatFormatting.GRAY)))
-                .append(new TextComponent(" x")
+                .append(Component.literal(" x")
                     .append(String.valueOf(itemStackSizes.getInt(i)))
                     .withStyle(style -> style.withColor(TextColor.fromLegacyFormat(ChatFormatting.DARK_GRAY))))
             );
@@ -144,26 +139,26 @@ public final class TooltipUtils {
     }
 
     public static void addEntityEnergyInformation(final ItemStack stack, final List<Component> tooltip) {
-        stack.getCapability(Capabilities.energyStorage()).ifPresent(energy -> {
+        Capabilities.getCapability(stack, Capabilities.energyStorage()).ifPresent(energy -> {
             if (energy.getEnergyStored() == 0) {
                 return;
             }
 
             final MutableComponent value = withFormat(energy.getEnergyStored() + "/" + energy.getMaxEnergyStored(), ChatFormatting.GREEN);
-            tooltip.add(withFormat(new TranslatableComponent(Constants.TOOLTIP_ENERGY, value), ChatFormatting.GRAY));
+            tooltip.add(withFormat(Component.translatable(Constants.TOOLTIP_ENERGY, value), ChatFormatting.GRAY));
         });
     }
 
     public static void addEnergyConsumption(final double value, final List<Component> tooltip) {
         if (value > 0) {
-            tooltip.add(withFormat(new TranslatableComponent(Constants.TOOLTIP_ENERGY_CONSUMPTION, withFormat(new DecimalFormat("#.##").format(value), ChatFormatting.GREEN)), ChatFormatting.GRAY));
+            tooltip.add(withFormat(Component.translatable(Constants.TOOLTIP_ENERGY_CONSUMPTION, withFormat(new DecimalFormat("#.##").format(value), ChatFormatting.GREEN)), ChatFormatting.GRAY));
         }
     }
 
     ///////////////////////////////////////////////////////////////////
 
     private static String[] getDeviceTypeNames() {
-        final ForgeRegistry<DeviceType> registry = RegistryManager.ACTIVE.getRegistry(DeviceType.REGISTRY);
+        final var registry = li.cil.oc2.common.bus.device.DeviceTypes.DEVICE_TYPE_REGISTRY.get();
         if (registry != null) {
             return registry.getValues().stream().map(RegistryUtils::key).toArray(String[]::new);
         } else {
@@ -175,7 +170,7 @@ public final class TooltipUtils {
         final ListTag itemsTag = tag.getList("Items", NBTTagIds.TAG_COMPOUND);
         for (int i = 0; i < itemsTag.size(); i++) {
             final CompoundTag itemTag = itemsTag.getCompound(i);
-            final ItemStack itemStack = ItemStack.of(itemTag);
+            final ItemStack itemStack = ItemStackUtils.parse(ItemStackUtils.getDefaultRegistries(), itemTag);
 
             boolean didMerge = false;
             for (int j = 0; j < stacks.size(); j++) {

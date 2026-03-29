@@ -16,9 +16,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemHandlerHelper;
-import net.minecraftforge.items.ItemStackHandler;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemHandlerHelper;
+import net.neoforged.neoforge.items.ItemStackHandler;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -220,20 +220,20 @@ public final class InventoryOperationsModuleDevice extends AbstractItemRPCDevice
 
     private Stream<IItemHandler> getEntityItemHandlersAt(final Vec3 position, final Direction side) {
         final AABB bounds = AABB.unitCubeFromLowerCorner(position.subtract(0.5, 0.5, 0.5));
-        return entity.level.getEntities(entity, bounds).stream()
-            .map(e -> e.getCapability(Capabilities.itemHandler(), side))
+        return entity.level().getEntities(entity, bounds).stream()
+            .map(e -> Capabilities.getCapability(e, Capabilities.itemHandler(), side))
             .filter(LazyOptional::isPresent)
             .map(c -> c.orElseThrow(AssertionError::new));
     }
 
     private Stream<IItemHandler> getBlockItemHandlersAt(final Vec3 position, final Direction side) {
-        final BlockPos pos = new BlockPos(position);
-        final BlockEntity blockEntity = entity.level.getBlockEntity(pos);
+        final BlockPos pos = BlockPos.containing(position);
+        final BlockEntity blockEntity = entity.level().getBlockEntity(pos);
         if (blockEntity == null) {
             return Stream.empty();
         }
 
-        final LazyOptional<IItemHandler> capability = blockEntity.getCapability(Capabilities.itemHandler(), side);
+        final LazyOptional<IItemHandler> capability = Capabilities.getCapability(blockEntity, Capabilities.itemHandler(), side);
         if (capability.isPresent()) {
             return Stream.of(capability.orElseThrow(AssertionError::new));
         }
@@ -242,7 +242,7 @@ public final class InventoryOperationsModuleDevice extends AbstractItemRPCDevice
     }
 
     private List<ItemEntity> getItemsInRange() {
-        return entity.level.getEntitiesOfClass(ItemEntity.class, entity.getBoundingBox().inflate(1));
+        return entity.level().getEntitiesOfClass(ItemEntity.class, entity.getBoundingBox().inflate(1));
     }
 
     private int takeFromWorld(final int count) {

@@ -26,7 +26,7 @@ public abstract class AbstractItemStackCapabilityDeviceProvider<TCapability> ext
     protected Optional<ItemDevice> getItemDevice(final ItemDeviceQuery query) {
         final Capability<TCapability> capability = capabilitySupplier.get();
         if (capability == null) throw new IllegalStateException();
-        final LazyOptional<TCapability> optional = query.getItemStack().getCapability(capability);
+        final LazyOptional<TCapability> optional = li.cil.oc2.common.capabilities.Capabilities.getCapability(query.getItemStack(), capability);
         if (!optional.isPresent()) {
             return Optional.empty();
         }

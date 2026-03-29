@@ -2,6 +2,7 @@
 
 package li.cil.oc2.common.block;
 
+import com.mojang.serialization.MapCodec;
 import li.cil.oc2.common.blockentity.BlockEntities;
 import li.cil.oc2.common.blockentity.NetworkConnectorBlockEntity;
 import li.cil.oc2.common.blockentity.TickableBlockEntity;
@@ -19,7 +20,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.AttachFace;
-import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
@@ -27,6 +27,8 @@ import javax.annotation.Nullable;
 import java.util.Objects;
 
 public final class NetworkConnectorBlock extends FaceAttachedHorizontalDirectionalBlock implements EntityBlock {
+    public static final MapCodec<NetworkConnectorBlock> CODEC = simpleCodec(NetworkConnectorBlock::new);
+
     private static final VoxelShape NEG_Z_SHAPE = Block.box(5, 5, 7, 11, 11, 16);
     private static final VoxelShape POS_Z_SHAPE = Block.box(5, 5, 0, 11, 11, 9);
     private static final VoxelShape NEG_X_SHAPE = Block.box(7, 5, 5, 16, 11, 11);
@@ -37,10 +39,14 @@ public final class NetworkConnectorBlock extends FaceAttachedHorizontalDirection
     ///////////////////////////////////////////////////////////////////
 
     public NetworkConnectorBlock() {
-        super(Properties
-            .of(Material.METAL)
+        this(Properties
+            .of()
             .sound(SoundType.METAL)
             .strength(1.5f, 6.0f));
+    }
+
+    public NetworkConnectorBlock(final Properties properties) {
+        super(properties);
         registerDefaultState(getStateDefinition().any()
             .setValue(FACING, Direction.NORTH)
             .setValue(FACE, AttachFace.WALL));
@@ -94,6 +100,11 @@ public final class NetworkConnectorBlock extends FaceAttachedHorizontalDirection
     }
 
     ///////////////////////////////////////////////////////////////////
+
+    @Override
+    protected MapCodec<? extends FaceAttachedHorizontalDirectionalBlock> codec() {
+        return CODEC;
+    }
 
     protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACE, FACING);

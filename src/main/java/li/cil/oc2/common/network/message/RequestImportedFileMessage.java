@@ -8,8 +8,8 @@ import li.cil.oc2.common.network.Network;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.TextColor;
-import net.minecraft.network.chat.TranslatableComponent;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.chat.Component;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -21,7 +21,7 @@ import static li.cil.oc2.common.util.TranslationUtils.text;
 
 public final class RequestImportedFileMessage extends AbstractMessage {
     private static final Logger LOGGER = LogManager.getLogger();
-    private static final TranslatableComponent FILE_TOO_LARGE_TEXT = text("message.{mod}.import_file.file_too_large");
+    private static final Component FILE_TOO_LARGE_TEXT = text("message.{mod}.import_file.file_too_large");
 
     ///////////////////////////////////////////////////////////////////
 
@@ -61,7 +61,7 @@ public final class RequestImportedFileMessage extends AbstractMessage {
                     final byte[] data = Files.readAllBytes(path);
                     if (data.length > FileImportExportCardItemDevice.MAX_TRANSFERRED_FILE_SIZE) {
                         Network.sendToServer(new ClientCanceledImportFileMessage(id));
-                        Minecraft.getInstance().gui.getChat().addMessage(FILE_TOO_LARGE_TEXT
+                        Minecraft.getInstance().gui.getChat().addMessage(FILE_TOO_LARGE_TEXT.copy()
                             .withStyle(s -> s.withColor(TextColor.fromRgb(0xFFA0A0))));
                     } else {
                         MultipartMessage.sendToServer(new ImportedFileMessage(id, fileName, data));

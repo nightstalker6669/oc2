@@ -7,7 +7,7 @@ import li.cil.oc2.common.network.MessageUtils;
 import li.cil.oc2.common.network.ProjectorLoadBalancer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public final class ProjectorRequestFramebufferMessage extends AbstractMessage {
     private BlockPos pos;

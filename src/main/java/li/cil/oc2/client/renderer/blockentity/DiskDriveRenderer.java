@@ -3,19 +3,19 @@
 package li.cil.oc2.client.renderer.blockentity;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Vector3f;
 import li.cil.oc2.common.block.DiskDriveBlock;
 import li.cil.oc2.common.blockentity.DiskDriveBlockEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemDisplayContext;
+import com.mojang.math.Axis;
 
 public final class DiskDriveRenderer implements BlockEntityRenderer<DiskDriveBlockEntity> {
     private final BlockEntityRenderDispatcher renderer;
@@ -38,13 +38,13 @@ public final class DiskDriveRenderer implements BlockEntityRenderer<DiskDriveBlo
         stack.pushPose();
 
         stack.translate(0.5f, 0.5f, 0.5f);
-        stack.mulPose(Vector3f.YN.rotationDegrees(blockFacing.toYRot()));
+        stack.mulPose(Axis.YN.rotationDegrees(blockFacing.toYRot()));
         stack.translate(0.0f, 0.0f, 0.5f);
-        stack.mulPose(Vector3f.XN.rotationDegrees(90));
+        stack.mulPose(Axis.XN.rotationDegrees(90));
         stack.translate(0.0f, 0.2375f, 2.5f / 16f);
         stack.scale(0.55f, 0.55f, 0.55f);
 
-        itemRenderer.renderStatic(floppy, ItemTransforms.TransformType.FIXED, neighborLight, overlay, stack, bufferSource, (int) diskDrive.getBlockPos().asLong());
+        itemRenderer.renderStatic(floppy, ItemDisplayContext.FIXED, neighborLight, overlay, stack, bufferSource, diskDrive.getLevel(), (int) diskDrive.getBlockPos().asLong());
 
         stack.popPose();
     }

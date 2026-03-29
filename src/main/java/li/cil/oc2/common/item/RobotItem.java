@@ -10,6 +10,7 @@ import li.cil.oc2.common.energy.EnergyStorageItemStack;
 import li.cil.oc2.common.entity.Entities;
 import li.cil.oc2.common.entity.Robot;
 import li.cil.oc2.common.entity.robot.RobotActions;
+import li.cil.oc2.common.util.ItemStackUtils;
 import li.cil.oc2.common.util.LevelUtils;
 import li.cil.oc2.common.util.NBTUtils;
 import li.cil.oc2.common.util.TooltipUtils;
@@ -22,6 +23,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -30,8 +32,8 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.client.IItemRenderProperties;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -42,23 +44,19 @@ import static li.cil.oc2.common.util.NBTUtils.makeInventoryTag;
 import static li.cil.oc2.common.util.RegistryUtils.key;
 
 public final class RobotItem extends ModItem {
-    @Override
     public void fillItemCategory(final CreativeModeTab tab, final NonNullList<ItemStack> items) {
-        if (allowdedIn(tab)) {
-            items.add(getRobotWithFlash());
-        }
+        items.add(getRobotWithFlash());
     }
 
     @Override
-    public void appendHoverText(final ItemStack stack, @Nullable final Level level, final List<Component> tooltip, final TooltipFlag flag) {
-        super.appendHoverText(stack, level, tooltip, flag);
+    public void appendHoverText(final ItemStack stack, final Item.TooltipContext context, final List<Component> tooltip, final TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
         TooltipUtils.addEnergyConsumption(Config.robotEnergyPerTick, tooltip);
         TooltipUtils.addEntityEnergyInformation(stack, tooltip);
         TooltipUtils.addEntityInventoryInformation(stack, tooltip);
     }
 
     @Nullable
-    @Override
     public ICapabilityProvider initCapabilities(final ItemStack stack, @Nullable final CompoundTag nbt) {
         if (Config.robotsUseEnergy()) {
             return new EnergyStorageItemStack(stack, Config.robotEnergyStorage, MOD_TAG_NAME, ENERGY_TAG_NAME);
@@ -95,7 +93,7 @@ public final class RobotItem extends ModItem {
             robot.importFromItemStack(context.getItemInHand());
 
             level.addFreshEntity(robot);
-            LevelUtils.playSound(level, new BlockPos(position), SoundType.METAL, SoundType::getPlaceSound);
+            LevelUtils.playSound(level, BlockPos.containing(position), SoundType.METAL, SoundType::getPlaceSound);
 
             if (context.getPlayer() == null || !context.getPlayer().isCreative()) {
                 context.getItemInHand().shrink(1);
@@ -117,10 +115,10 @@ public final class RobotItem extends ModItem {
     ///////////////////////////////////////////////////////////////////
 
     @Override
-    public void initializeClient(final Consumer<IItemRenderProperties> consumer) {
-        consumer.accept(new IItemRenderProperties() {
+    public void initializeClient(final Consumer<IClientItemExtensions> consumer) {
+        consumer.accept(new IClientItemExtensions() {
             @Override
-            public BlockEntityWithoutLevelRenderer getItemStackRenderer() {
+            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
                 return new RobotWithoutLevelRenderer(Minecraft.getInstance().getBlockEntityRenderDispatcher(), Minecraft.getInstance().getEntityModels());
             }
         });
@@ -131,7 +129,7 @@ public final class RobotItem extends ModItem {
     private ItemStack getRobotWithFlash() {
         final ItemStack robot = new ItemStack(this);
 
-        final CompoundTag itemsTag = NBTUtils.getOrCreateChildTag(robot.getOrCreateTag(), API.MOD_ID, ITEMS_TAG_NAME);
+        final CompoundTag itemsTag = NBTUtils.getOrCreateChildTag(ItemStackUtils.getOrCreateModDataTag(robot), API.MOD_ID, ITEMS_TAG_NAME);
         itemsTag.put(key(DeviceTypes.FLASH_MEMORY), makeInventoryTag(
             new ItemStack(Items.FLASH_MEMORY_CUSTOM.get())
         ));

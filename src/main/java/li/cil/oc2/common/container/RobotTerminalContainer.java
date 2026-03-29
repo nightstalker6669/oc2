@@ -14,8 +14,9 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraftforge.items.ItemStackHandler;
 import net.minecraftforge.network.NetworkHooks;
+import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class RobotTerminalContainer extends AbstractRobotContainer {
     public static void createServer(final Robot robot, final FixedEnergyStorage energy, final CommonDeviceBusController busController, final ServerPlayer player) {
@@ -34,7 +35,7 @@ public final class RobotTerminalContainer extends AbstractRobotContainer {
 
     public static RobotTerminalContainer createClient(final int id, final Inventory inventory, final FriendlyByteBuf data) {
         final int entityId = data.readVarInt();
-        final Entity entity = inventory.player.level.getEntity(entityId);
+        final Entity entity = inventory.player.level().getEntity(entityId);
         if (entity instanceof final Robot robot) {
             return new RobotTerminalContainer(id, inventory.player, robot, createClientEnergyInfo());
         }

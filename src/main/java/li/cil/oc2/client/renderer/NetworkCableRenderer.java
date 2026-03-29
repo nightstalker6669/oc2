@@ -4,8 +4,6 @@ package li.cil.oc2.client.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Matrix4f;
-import com.mojang.math.Vector3f;
 import li.cil.oc2.api.API;
 import li.cil.oc2.common.blockentity.NetworkConnectorBlockEntity;
 import net.minecraft.client.Minecraft;
@@ -19,12 +17,14 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.*;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RenderLevelStageEvent;
-import net.minecraftforge.event.world.ChunkEvent;
-import net.minecraftforge.event.world.WorldEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.level.LevelEvent;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -37,7 +37,7 @@ import java.util.function.Predicate;
 // fall back to letting the TESRs trigger the cable rendering. We still use the data
 // structures with precomputed data and such, it's just that they need much larger
 // render bounds and require an addition hash map look-up.
-@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = API.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+@EventBusSubscriber(value = Dist.CLIENT, modid = API.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
 public final class NetworkCableRenderer {
     private static final int MAX_RENDER_DISTANCE = 100;
     private static final int CABLE_VERTEX_COUNT = 9;
@@ -80,7 +80,7 @@ public final class NetworkCableRenderer {
 
     @SubscribeEvent
     public static void handleChunkUnloadEvent(final ChunkEvent.Unload event) {
-        if (event.getWorld().isClientSide()) {
+        if (event.getLevel().isClientSide()) {
             final ChunkPos chunkPos = event.getChunk().getPos();
 
             final ArrayList<NetworkConnectorBlockEntity> list = new ArrayList<>(NetworkCableRenderer.connectors);
@@ -96,9 +96,9 @@ public final class NetworkCableRenderer {
     }
 
     @SubscribeEvent
-    public static void handleWorldUnloadEvent(final WorldEvent.Unload event) {
-        if (event.getWorld().isClientSide()) {
-            final LevelAccessor level = event.getWorld();
+    public static void handleWorldUnloadEvent(final LevelEvent.Unload event) {
+        if (event.getLevel().isClientSide()) {
+            final LevelAccessor level = event.getLevel();
 
             final ArrayList<NetworkConnectorBlockEntity> list = new ArrayList<>(NetworkCableRenderer.connectors);
             for (final NetworkConnectorBlockEntity connector : list) {
@@ -183,13 +183,15 @@ public final class NetworkCableRenderer {
                 final Vec3 p = quadraticBezier(p0, p1, p2, t);
                 final Vec3 n = getExtrusionVector(eye, p, connection.forward);
 
-                final BlockPos blockPos = new BlockPos(p);
+                final BlockPos blockPos = BlockPos.containing(p);
                 final int blockLight = level.getBrightness(LightLayer.BLOCK, blockPos);
                 final int skyLight = level.getBrightness(LightLayer.SKY, blockPos);
                 final int packedLight = LightTexture.pack(blockLight, skyLight);
 
-                final Vector3f v0 = new Vector3f(p.subtract(n));
-                final Vector3f v1 = new Vector3f(p.add(n));
+                final Vec3 pMinusN = p.subtract(n);
+                final Vec3 pPlusN = p.add(n);
+                final Vector3f v0 = new Vector3f((float) pMinusN.x, (float) pMinusN.y, (float) pMinusN.z);
+                final Vector3f v1 = new Vector3f((float) pPlusN.x, (float) pPlusN.y, (float) pPlusN.z);
 
                 cablePoints.add(new CablePoint(v0, v1, packedLight));
             }
@@ -198,22 +200,18 @@ public final class NetworkCableRenderer {
                 final CablePoint pa = cablePoints.get(i);
                 final CablePoint pb = cablePoints.get(i + 1);
 
-                consumer.vertex(viewMatrix, pa.v0.x(), pa.v0.y(), pa.v0.z())
-                    .color(r, g, b, 1f)
-                    .uv2(pa.packedLight)
-                    .endVertex();
-                consumer.vertex(viewMatrix, pa.v1.x(), pa.v1.y(), pa.v1.z())
-                    .color(r, g, b, 1f)
-                    .uv2(pa.packedLight)
-                    .endVertex();
-                consumer.vertex(viewMatrix, pb.v1.x(), pb.v1.y(), pb.v1.z())
-                    .color(r, g, b, 1f)
-                    .uv2(pa.packedLight)
-                    .endVertex();
-                consumer.vertex(viewMatrix, pb.v0.x(), pb.v0.y(), pb.v0.z())
-                    .color(r, g, b, 1f)
-                    .uv2(pa.packedLight)
-                    .endVertex();
+                consumer.addVertex(viewMatrix, pa.v0.x(), pa.v0.y(), pa.v0.z())
+                    .setColor(r, g, b, 1f)
+                    .setLight(pa.packedLight);
+                consumer.addVertex(viewMatrix, pa.v1.x(), pa.v1.y(), pa.v1.z())
+                    .setColor(r, g, b, 1f)
+                    .setLight(pa.packedLight);
+                consumer.addVertex(viewMatrix, pb.v1.x(), pb.v1.y(), pb.v1.z())
+                    .setColor(r, g, b, 1f)
+                    .setLight(pa.packedLight);
+                consumer.addVertex(viewMatrix, pb.v0.x(), pb.v0.y(), pb.v0.z())
+                    .setColor(r, g, b, 1f)
+                    .setLight(pa.packedLight);
             }
 
             bufferSource.endBatch(renderType);

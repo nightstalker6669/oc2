@@ -6,8 +6,10 @@ import li.cil.oc2.api.API;
 import li.cil.oc2.common.bus.device.vm.item.ByteBufferFlashStorageDevice;
 import li.cil.oc2.common.util.NBTTagIds;
 import net.minecraft.Util;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 
 import javax.annotation.Nullable;
 
@@ -21,13 +23,12 @@ public final class FlashMemoryItem extends AbstractStorageItem {
     ///////////////////////////////////////////////////////////////////
 
     @Nullable
-    @Override
     public CompoundTag getShareTag(final ItemStack stack) {
-        final CompoundTag tag = super.getShareTag(stack);
+        final CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).getUnsafe().copy();
         if (tag != null && tag.contains(API.MOD_ID, NBTTagIds.TAG_COMPOUND)) {
             tag.getCompound(API.MOD_ID).remove(ByteBufferFlashStorageDevice.DATA_TAG_NAME);
         }
-        return tag;
+        return tag.isEmpty() ? null : tag;
     }
 
     ///////////////////////////////////////////////////////////////////

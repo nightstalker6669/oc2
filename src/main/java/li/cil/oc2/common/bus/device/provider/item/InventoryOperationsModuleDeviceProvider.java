@@ -22,7 +22,7 @@ public final class InventoryOperationsModuleDeviceProvider extends AbstractItemD
     @Override
     protected Optional<ItemDevice> getItemDevice(final ItemDeviceQuery query) {
         return query.getContainerEntity().flatMap(entity ->
-            entity.getCapability(Capabilities.robot()).map(robot ->
+            Capabilities.getCapability(entity, Capabilities.robot(), null).map(robot ->
                 new InventoryOperationsModuleDevice(query.getItemStack(), entity, robot)));
     }
 

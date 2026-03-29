@@ -8,7 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public final class DiskDriveFloppyMessage extends AbstractMessage {
     private BlockPos pos;
@@ -18,7 +18,9 @@ public final class DiskDriveFloppyMessage extends AbstractMessage {
 
     public DiskDriveFloppyMessage(final DiskDriveBlockEntity diskDrive) {
         this.pos = diskDrive.getBlockPos();
-        this.data = diskDrive.getFloppy().serializeNBT();
+        this.data = diskDrive.getFloppy().isEmpty() || diskDrive.getLevel() == null
+            ? new CompoundTag()
+            : li.cil.oc2.common.util.ItemStackUtils.save(diskDrive.getFloppy(), diskDrive.getLevel().registryAccess());
     }
 
     public DiskDriveFloppyMessage(final FriendlyByteBuf buffer) {
@@ -44,6 +46,6 @@ public final class DiskDriveFloppyMessage extends AbstractMessage {
     @Override
     protected void handleMessage(final NetworkEvent.Context context) {
         MessageUtils.withClientBlockEntityAt(pos, DiskDriveBlockEntity.class,
-            diskDrive -> diskDrive.setFloppyClient(ItemStack.of(data)));
+            diskDrive -> diskDrive.setFloppyClient(diskDrive.getLevel() == null ? ItemStack.EMPTY : li.cil.oc2.common.util.ItemStackUtils.parse(diskDrive.getLevel().registryAccess(), data)));
     }
 }

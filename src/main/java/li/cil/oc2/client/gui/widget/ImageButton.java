@@ -3,14 +3,13 @@
 package li.cil.oc2.client.gui.widget;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import li.cil.oc2.common.util.TooltipUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
 import net.minecraft.util.Mth;
 
 import java.util.Arrays;
@@ -35,7 +34,7 @@ public abstract class ImageButton extends AbstractButton {
     ///////////////////////////////////////////////////////////////////
 
     protected ImageButton(final int x, final int y, final int width, final int height, final Sprite baseImage, final Sprite pressedImage) {
-        super(x, y, width, height, TextComponent.EMPTY);
+        super(x, y, width, height, Component.empty());
         this.baseImage = baseImage;
         this.pressedImage = pressedImage;
     }
@@ -62,14 +61,12 @@ public abstract class ImageButton extends AbstractButton {
     }
 
     @Override
-    public void renderButton(final PoseStack stack, final int mouseX, final int mouseY, final float partialTicks) {
-        renderBackground(stack, mouseX, mouseY, partialTicks);
-
-        renderToolTip(stack, mouseX, mouseY);
+    protected void renderWidget(final GuiGraphics graphics, final int mouseX, final int mouseY, final float partialTicks) {
+        renderBackground(graphics, mouseX, mouseY, partialTicks);
+        renderToolTip(graphics, mouseX, mouseY);
     }
 
-    @Override
-    public void renderToolTip(final PoseStack stack, final int mouseX, final int mouseY) {
+    public void renderToolTip(final GuiGraphics graphics, final int mouseX, final int mouseY) {
         if (tooltip.isEmpty()) {
             return;
         }
@@ -80,7 +77,7 @@ public abstract class ImageButton extends AbstractButton {
             }
 
             if ((System.currentTimeMillis() - hoveringStartedAt) > TOOLTIP_DELAY) {
-                TooltipUtils.drawTooltip(stack, tooltip, mouseX, mouseY, 200);
+                TooltipUtils.drawTooltip(graphics, tooltip, mouseX, mouseY, 200);
             }
         } else {
             hoveringStartedAt = 0;
@@ -88,13 +85,13 @@ public abstract class ImageButton extends AbstractButton {
     }
 
     @Override
-    public void updateNarration(final NarrationElementOutput element) {
+    public void updateWidgetNarration(final NarrationElementOutput element) {
         this.defaultButtonNarrationText(element);
     }
 
     ///////////////////////////////////////////////////////////////////
 
-    protected void renderBackground(final PoseStack stack, final int mouseX, final int mouseY, final float partialTicks) {
+    protected void renderBackground(final GuiGraphics graphics, final int mouseX, final int mouseY, final float partialTicks) {
         RenderSystem.enableDepthTest();
 
         Sprite background = baseImage;
@@ -102,11 +99,11 @@ public abstract class ImageButton extends AbstractButton {
             background = pressedImage;
         }
 
-        background.draw(stack, x, y);
+        background.draw(graphics, getX(), getY());
 
-        if (!Objects.equals(getMessage(), TextComponent.EMPTY)) {
-            drawCenteredString(stack, Minecraft.getInstance().font, getMessage(),
-                x + width / 2, y + (height - 8) / 2,
+        if (!Objects.equals(getMessage(), Component.empty())) {
+            graphics.drawCenteredString(Minecraft.getInstance().font, getMessage(),
+                getX() + width / 2, getY() + (height - 8) / 2,
                 getFGColor() | Mth.ceil(alpha * 255) << 24);
         }
     }

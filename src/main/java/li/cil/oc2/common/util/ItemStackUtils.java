@@ -4,9 +4,15 @@ package li.cil.oc2.common.util;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -14,17 +20,35 @@ import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
 import java.util.Optional;
-import java.util.Random;
 
 import static li.cil.oc2.common.Constants.MOD_TAG_NAME;
 
 public final class ItemStackUtils {
+    private static final HolderLookup.Provider DEFAULT_REGISTRIES = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+
+    public static HolderLookup.Provider getDefaultRegistries() {
+        return DEFAULT_REGISTRIES;
+    }
+
     public static CompoundTag getModDataTag(final ItemStack stack) {
-        return NBTUtils.getChildTag(stack.getTag(), MOD_TAG_NAME);
+        return NBTUtils.getChildTag(stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).getUnsafe(), MOD_TAG_NAME);
     }
 
     public static CompoundTag getOrCreateModDataTag(final ItemStack stack) {
-        return NBTUtils.getOrCreateChildTag(stack.getOrCreateTag(), MOD_TAG_NAME);
+        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> NBTUtils.getOrCreateChildTag(tag, MOD_TAG_NAME));
+        return NBTUtils.getOrCreateChildTag(stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).getUnsafe(), MOD_TAG_NAME);
+    }
+
+    public static CompoundTag save(final ItemStack stack, final HolderLookup.Provider registries) {
+        return (CompoundTag) stack.save(registries);
+    }
+
+    public static CompoundTag save(final ItemStack stack, final HolderLookup.Provider registries, final CompoundTag tag) {
+        return (CompoundTag) stack.save(registries, tag);
+    }
+
+    public static ItemStack parse(final HolderLookup.Provider registries, final CompoundTag tag) {
+        return ItemStack.parseOptional(registries, tag);
     }
 
     @Nullable
@@ -51,7 +75,7 @@ public final class ItemStackUtils {
             return Optional.empty();
         }
 
-        final Random rng = level.random;
+        final RandomSource rng = level.random;
 
         final float tx = 0.5f * (rng.nextFloat() - 1.0f);
         final float ty = 0.5f * (rng.nextFloat() - 1.0f);
@@ -80,7 +104,7 @@ public final class ItemStackUtils {
             return Optional.empty();
         }
 
-        final Random rng = level.random;
+        final RandomSource rng = level.random;
 
         final float ox = direction.getStepX();
         final float oy = direction.getStepY();

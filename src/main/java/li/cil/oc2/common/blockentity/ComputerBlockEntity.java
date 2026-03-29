@@ -200,7 +200,9 @@ public final class ComputerBlockEntity extends ModBlockEntity implements Termina
         tag.put(TERMINAL_TAG_NAME, NBTSerialization.serialize(terminal));
         tag.putInt(AbstractVirtualMachine.BUS_STATE_TAG_NAME, virtualMachine.getBusState().ordinal());
         tag.putInt(AbstractVirtualMachine.RUN_STATE_TAG_NAME, virtualMachine.getRunState().ordinal());
-        tag.putString(AbstractVirtualMachine.BOOT_ERROR_TAG_NAME, Component.Serializer.toJson(virtualMachine.getBootError()));
+        if (virtualMachine.getBootError() != null) {
+            tag.putString(AbstractVirtualMachine.BOOT_ERROR_TAG_NAME, Component.Serializer.toJson(virtualMachine.getBootError(), getRegistries()));
+        }
 
         return tag;
     }
@@ -212,7 +214,9 @@ public final class ComputerBlockEntity extends ModBlockEntity implements Termina
         NBTSerialization.deserialize(tag.getCompound(TERMINAL_TAG_NAME), terminal);
         virtualMachine.setBusStateClient(CommonDeviceBusController.BusState.values()[tag.getInt(AbstractVirtualMachine.BUS_STATE_TAG_NAME)]);
         virtualMachine.setRunStateClient(VMRunState.values()[tag.getInt(AbstractVirtualMachine.RUN_STATE_TAG_NAME)]);
-        virtualMachine.setBootErrorClient(Component.Serializer.fromJson(tag.getString(AbstractVirtualMachine.BOOT_ERROR_TAG_NAME)));
+        virtualMachine.setBootErrorClient(tag.contains(AbstractVirtualMachine.BOOT_ERROR_TAG_NAME)
+            ? Component.Serializer.fromJson(tag.getString(AbstractVirtualMachine.BOOT_ERROR_TAG_NAME), getRegistries())
+            : null);
     }
 
     @Override
@@ -224,9 +228,9 @@ public final class ComputerBlockEntity extends ModBlockEntity implements Termina
             tag.put(TERMINAL_TAG_NAME, NBTSerialization.serialize(terminal));
         }
 
-        tag.put(ENERGY_TAG_NAME, energy.serializeNBT());
+        tag.put(ENERGY_TAG_NAME, energy.serializeNBT(getRegistries()));
         tag.put(BUS_ELEMENT_TAG_NAME, busElement.save());
-        tag.put(ITEMS_TAG_NAME, deviceItems.saveItems());
+        tag.put(ITEMS_TAG_NAME, deviceItems.saveItems(getRegistries()));
         tag.put(DEVICES_TAG_NAME, deviceItems.saveDevices());
     }
 
@@ -234,17 +238,17 @@ public final class ComputerBlockEntity extends ModBlockEntity implements Termina
     public void load(final CompoundTag tag) {
         super.load(tag);
 
-        energy.deserializeNBT(tag.getCompound(ENERGY_TAG_NAME));
+        energy.deserializeNBT(getRegistries(), tag.getCompound(ENERGY_TAG_NAME));
         virtualMachine.deserialize(tag.getCompound(STATE_TAG_NAME));
         NBTSerialization.deserialize(tag.getCompound(TERMINAL_TAG_NAME), terminal);
         busElement.load(tag.getCompound(BUS_ELEMENT_TAG_NAME));
 
-        deviceItems.loadItems(tag.getCompound(ITEMS_TAG_NAME));
+        deviceItems.loadItems(getRegistries(), tag.getCompound(ITEMS_TAG_NAME));
         deviceItems.loadDevices(tag.getCompound(DEVICES_TAG_NAME));
     }
 
     public void exportToItemStack(final ItemStack stack) {
-        deviceItems.saveItems(NBTUtils.getOrCreateChildTag(stack.getOrCreateTag(), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME));
+        deviceItems.saveItems(getRegistries(), NBTUtils.getOrCreateChildTag(ItemStackUtils.getOrCreateModDataTag(stack), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME));
     }
 
     ///////////////////////////////////////////////////////////////////

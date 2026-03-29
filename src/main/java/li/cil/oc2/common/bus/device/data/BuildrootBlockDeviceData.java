@@ -7,12 +7,13 @@ import li.cil.sedna.api.device.BlockDevice;
 import li.cil.sedna.buildroot.Buildroot;
 import li.cil.sedna.device.block.ByteBufferBlockDevice;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.registries.ForgeRegistryEntry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 public final class BuildrootBlockDeviceData extends ForgeRegistryEntry<BlockDeviceData> implements BlockDeviceData {
     private static final Logger LOGGER = LogManager.getLogger();
@@ -23,8 +24,13 @@ public final class BuildrootBlockDeviceData extends ForgeRegistryEntry<BlockDevi
 
     static {
         ByteBufferBlockDevice instance;
-        try {
-            instance = ByteBufferBlockDevice.createFromStream(Buildroot.getRootFilesystem(), true);
+        try (final InputStream stream = Buildroot.getRootFilesystem()) {
+            if (stream == null) {
+                LOGGER.warn("Missing buildroot root filesystem image; using empty block device placeholder.");
+                instance = ByteBufferBlockDevice.create(0, true);
+            } else {
+                instance = ByteBufferBlockDevice.createFromStream(stream, true);
+            }
         } catch (final IOException e) {
             LOGGER.error(e);
             instance = ByteBufferBlockDevice.create(0, true);
@@ -41,6 +47,6 @@ public final class BuildrootBlockDeviceData extends ForgeRegistryEntry<BlockDevi
 
     @Override
     public Component getDisplayName() {
-        return new TextComponent("Sedna Linux");
+        return Component.literal("Sedna Linux");
     }
 }

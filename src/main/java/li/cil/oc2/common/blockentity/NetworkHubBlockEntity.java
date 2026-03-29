@@ -106,7 +106,7 @@ public final class NetworkHubBlockEntity extends ModBlockEntity implements Netwo
         for (final Direction side : Constants.DIRECTIONS) {
             final BlockEntity neighborBlockEntity = LevelUtils.getBlockEntityIfChunkExists(level, pos.relative(side));
             if (neighborBlockEntity != null) {
-                final LazyOptional<NetworkInterface> optional = neighborBlockEntity.getCapability(Capabilities.networkInterface(), side.getOpposite());
+                final LazyOptional<NetworkInterface> optional = Capabilities.getCapability(neighborBlockEntity, Capabilities.networkInterface(), side.getOpposite());
                 optional.ifPresent(adjacentInterface -> {
                     adjacentBlockInterfaces[side.get3DDataValue()] = adjacentInterface;
                     LazyOptionalUtils.addWeakListener(optional, this, (hub, unused) -> hub.handleNeighborChanged());

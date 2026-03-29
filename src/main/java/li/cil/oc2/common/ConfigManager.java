@@ -4,13 +4,12 @@ package li.cil.oc2.common;
 
 import li.cil.oc2.api.API;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.config.IConfigSpec;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.event.config.ModConfigEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.config.ModConfigEvent;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,7 +27,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-@Mod.EventBusSubscriber(modid = API.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = API.MOD_ID, bus = EventBusSubscriber.Bus.MOD)
 public final class ConfigManager {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.TYPE)
@@ -61,7 +60,7 @@ public final class ConfigManager {
     ///////////////////////////////////////////////////////////////////
 
     private static final Map<Class<?>, ConfigFieldParser> PARSERS = new HashMap<>();
-    private static final Map<IConfigSpec<ForgeConfigSpec>, ConfigDefinition> CONFIGS = new HashMap<>();
+    private static final Map<ModConfigSpec, ConfigDefinition> CONFIGS = new HashMap<>();
 
     static {
         PARSERS.put(int.class, ConfigManager::parseIntField);
@@ -76,7 +75,7 @@ public final class ConfigManager {
 
     public static <T> void add(final Supplier<T> factory) {
         final ArrayList<ConfigFieldPair<?>> values = new ArrayList<>();
-        final Pair<?, ForgeConfigSpec> config = new ForgeConfigSpec.Builder().configure(builder -> {
+        final Pair<?, ModConfigSpec> config = new ModConfigSpec.Builder().configure(builder -> {
             final T instance = factory.get();
             fillSpec(instance, builder, values);
             return instance;
@@ -84,11 +83,11 @@ public final class ConfigManager {
         CONFIGS.put(config.getValue(), new ConfigDefinition(config.getKey(), values));
     }
 
-    public static void initialize() {
+    public static void initialize(final ModContainer modContainer) {
         CONFIGS.forEach((spec, config) -> {
             final Type typeAnnotation = config.instance.getClass().getAnnotation(Type.class);
             final ModConfig.Type configType = typeAnnotation != null ? typeAnnotation.value() : ModConfig.Type.COMMON;
-            ModLoadingContext.get().registerConfig(configType, spec);
+            modContainer.registerConfig(configType, spec);
         });
     }
 
@@ -104,13 +103,13 @@ public final class ConfigManager {
 
     ///////////////////////////////////////////////////////////////////
 
-    private static <T> void fillSpec(final T instance, final ForgeConfigSpec.Builder builder, final ArrayList<ConfigFieldPair<?>> values) {
+    private static <T> void fillSpec(final T instance, final ModConfigSpec.Builder builder, final ArrayList<ConfigFieldPair<?>> values) {
         for (final Field field : instance.getClass().getFields()) {
             parseField(instance, builder, values, field);
         }
     }
 
-    private static <T> void parseField(final T instance, final ForgeConfigSpec.Builder builder, final ArrayList<ConfigFieldPair<?>> values, final Field field) {
+    private static <T> void parseField(final T instance, final ModConfigSpec.Builder builder, final ArrayList<ConfigFieldPair<?>> values, final Field field) {
         final ConfigFieldParser parser = PARSERS.get(field.getType());
         if (parser != null) {
             final Path pathAnnotation = field.getAnnotation(Path.class);
@@ -124,58 +123,58 @@ public final class ConfigManager {
         }
     }
 
-    private static ConfigFieldPair<?> parseIntField(final Object instance, final Field field, final String path, final ForgeConfigSpec.Builder builder) throws IllegalAccessException {
+    private static ConfigFieldPair<?> parseIntField(final Object instance, final Field field, final String path, final ModConfigSpec.Builder builder) throws IllegalAccessException {
         final int defaultValue = field.getInt(instance);
         final int minValue = (int) Math.max(getMin(field), Integer.MIN_VALUE);
         final int maxValue = (int) Math.min(getMax(field), Integer.MAX_VALUE);
 
-        final ForgeConfigSpec.IntValue configValue = builder.defineInRange(path, defaultValue, minValue, maxValue);
+        final ModConfigSpec.IntValue configValue = builder.defineInRange(path, defaultValue, minValue, maxValue);
 
         return new ConfigFieldPair<>(field, configValue);
     }
 
-    private static ConfigFieldPair<?> parseLongField(final Object instance, final Field field, final String path, final ForgeConfigSpec.Builder builder) throws IllegalAccessException {
+    private static ConfigFieldPair<?> parseLongField(final Object instance, final Field field, final String path, final ModConfigSpec.Builder builder) throws IllegalAccessException {
         final long defaultValue = field.getLong(instance);
         final long minValue = (long) Math.max(getMin(field), Long.MIN_VALUE);
         final long maxValue = (long) Math.min(getMax(field), Long.MAX_VALUE);
 
-        final ForgeConfigSpec.LongValue configValue = builder.defineInRange(path, defaultValue, minValue, maxValue);
+        final ModConfigSpec.LongValue configValue = builder.defineInRange(path, defaultValue, minValue, maxValue);
 
         return new ConfigFieldPair<>(field, configValue);
     }
 
-    private static ConfigFieldPair<?> parseDoubleField(final Object instance, final Field field, final String path, final ForgeConfigSpec.Builder builder) throws IllegalAccessException {
+    private static ConfigFieldPair<?> parseDoubleField(final Object instance, final Field field, final String path, final ModConfigSpec.Builder builder) throws IllegalAccessException {
         final double defaultValue = field.getDouble(instance);
         final double minValue = getMin(field);
         final double maxValue = getMax(field);
 
-        final ForgeConfigSpec.DoubleValue configValue = builder.defineInRange(path, defaultValue, minValue, maxValue);
+        final ModConfigSpec.DoubleValue configValue = builder.defineInRange(path, defaultValue, minValue, maxValue);
 
         return new ConfigFieldPair<>(field, configValue);
     }
 
-    private static ConfigFieldPair<?> parseStringField(final Object instance, final Field field, final String path, final ForgeConfigSpec.Builder builder) throws IllegalAccessException {
+    private static ConfigFieldPair<?> parseStringField(final Object instance, final Field field, final String path, final ModConfigSpec.Builder builder) throws IllegalAccessException {
         final String defaultValue = (String) field.get(instance);
 
-        final ForgeConfigSpec.ConfigValue<String> configValue = builder.define(path, defaultValue);
+        final ModConfigSpec.ConfigValue<String> configValue = builder.define(path, defaultValue);
 
         return new ConfigFieldPair<>(field, configValue);
     }
 
-    private static ConfigFieldPair<?> parseUUIDField(final Object instance, final Field field, final String path, final ForgeConfigSpec.Builder builder) throws IllegalAccessException {
+    private static ConfigFieldPair<?> parseUUIDField(final Object instance, final Field field, final String path, final ModConfigSpec.Builder builder) throws IllegalAccessException {
         final UUID defaultValue = (UUID) field.get(instance);
 
-        final ForgeConfigSpec.ConfigValue<String> configValue = builder.define(path, defaultValue.toString());
+        final ModConfigSpec.ConfigValue<String> configValue = builder.define(path, defaultValue.toString());
 
         return new ConfigFieldPair<>(field, configValue, UUID::fromString);
     }
 
-    private static ConfigFieldPair<?> parseResourceLocationField(final Object instance, final Field field, final String path, final ForgeConfigSpec.Builder builder) throws IllegalAccessException {
+    private static ConfigFieldPair<?> parseResourceLocationField(final Object instance, final Field field, final String path, final ModConfigSpec.Builder builder) throws IllegalAccessException {
         final ResourceLocation defaultValue = (ResourceLocation) field.get(instance);
 
-        final ForgeConfigSpec.ConfigValue<String> configValue = builder.define(path, defaultValue.toString());
+        final ModConfigSpec.ConfigValue<String> configValue = builder.define(path, defaultValue.toString());
 
-        return new ConfigFieldPair<>(field, configValue, ResourceLocation::new);
+        return new ConfigFieldPair<>(field, configValue, ResourceLocation::parse);
     }
 
     private static String getPath(@Nullable final String prefix, final Field field) {
@@ -196,7 +195,7 @@ public final class ConfigManager {
 
     @FunctionalInterface
     private interface ConfigFieldParser {
-        ConfigFieldPair<?> apply(final Object instance, final Field field, final String path, final ForgeConfigSpec.Builder builder) throws IllegalAccessException;
+        ConfigFieldPair<?> apply(final Object instance, final Field field, final String path, final ModConfigSpec.Builder builder) throws IllegalAccessException;
     }
 
     private record ConfigDefinition(Object instance, ArrayList<ConfigFieldPair<?>> values) {
@@ -209,16 +208,16 @@ public final class ConfigManager {
 
     private static final class ConfigFieldPair<T> {
         public final Field field;
-        public final ForgeConfigSpec.ConfigValue<T> value;
+        public final ModConfigSpec.ConfigValue<T> value;
         private final Function<T, Object> converter;
 
-        public ConfigFieldPair(final Field field, final ForgeConfigSpec.ConfigValue<T> value, final Function<T, Object> converter) {
+        public ConfigFieldPair(final Field field, final ModConfigSpec.ConfigValue<T> value, final Function<T, Object> converter) {
             this.field = field;
             this.value = value;
             this.converter = converter;
         }
 
-        public ConfigFieldPair(final Field field, final ForgeConfigSpec.ConfigValue<T> value) {
+        public ConfigFieldPair(final Field field, final ModConfigSpec.ConfigValue<T> value) {
             this(field, value, x -> x);
         }
 

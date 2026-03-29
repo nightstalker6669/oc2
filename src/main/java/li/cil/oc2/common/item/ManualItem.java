@@ -11,26 +11,26 @@ import li.cil.oc2.client.manual.ModManualScreenStyle;
 import li.cil.oc2.client.manual.ModManualStyle;
 import li.cil.oc2.common.util.TooltipUtils;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
 public final class ManualItem extends AbstractManualItem {
     public ManualItem() {
-        super(new Properties().tab(ItemGroup.COMMON));
+        super(new Properties());
     }
 
     ///////////////////////////////////////////////////////////////////
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    public void appendHoverText(final ItemStack stack, @Nullable final Level level, final List<Component> tooltip, final TooltipFlag flag) {
-        super.appendHoverText(stack, level, tooltip, flag);
+    public void appendHoverText(final ItemStack stack, final Item.TooltipContext context, final List<Component> tooltip, final TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
         TooltipUtils.tryAddDescription(stack, tooltip);
     }
 

@@ -25,6 +25,7 @@ import li.cil.oc2.common.item.Items;
 import li.cil.oc2.common.network.Network;
 import li.cil.oc2.common.network.message.*;
 import li.cil.oc2.common.serialization.NBTSerialization;
+import li.cil.oc2.common.util.ItemStackUtils;
 import li.cil.oc2.common.util.LevelUtils;
 import li.cil.oc2.common.util.NBTTagIds;
 import li.cil.oc2.common.util.NBTUtils;
@@ -37,12 +38,15 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerEntity;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -56,23 +60,24 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.BooleanOp;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.MinecraftForge;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.common.NeoForge;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.event.world.ChunkEvent;
-import net.minecraftforge.event.world.WorldEvent;
-import net.minecraftforge.items.ItemStackHandler;
-import net.minecraftforge.network.NetworkHooks;
+import net.neoforged.neoforge.event.level.ChunkEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -108,7 +113,7 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
     ///////////////////////////////////////////////////////////////////
 
     private final Consumer<ChunkEvent.Unload> chunkUnloadListener = this::handleChunkUnload;
-    private final Consumer<WorldEvent.Unload> worldUnloadListener = this::handleWorldUnload;
+    private final Consumer<LevelEvent.Unload> worldUnloadListener = this::handleWorldUnload;
     private final BlockPos.MutableBlockPos mutablePosition = new BlockPos.MutableBlockPos();
 
     private final AnimationState animationState = new AnimationState();
@@ -120,6 +125,7 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
     private final FixedEnergyStorage energy = new FixedEnergyStorage(Config.robotEnergyStorage);
     private final ItemStackHandler inventory = new FixedSizeItemStackHandler(INVENTORY_SIZE);
     private final Set<Player> terminalUsers = Collections.newSetFromMap(new WeakHashMap<>());
+    private boolean isRuntimeDisposed;
     private long lastPistonMovement;
 
     ///////////////////////////////////////////////////////////////////
@@ -169,7 +175,6 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
     }
 
     @Nonnull
-    @Override
     public <T> LazyOptional<T> getCapability(final Capability<T> capability, @Nullable final Direction side) {
         if (capability == Capabilities.itemHandler()) {
             return LazyOptional.of(() -> inventory).cast();
@@ -179,11 +184,6 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
         }
         if (capability == Capabilities.robot()) {
             return LazyOptional.of(() -> this).cast();
-        }
-
-        final LazyOptional<T> optional = super.getCapability(capability, side);
-        if (optional.isPresent()) {
-            return optional;
         }
 
         for (final Device device : virtualMachine.busController.getDevices()) {
@@ -203,13 +203,13 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
     }
 
     public void start() {
-        if (!level.isClientSide()) {
+        if (!level().isClientSide()) {
             virtualMachine.start();
         }
     }
 
     public void stop() {
-        if (!level.isClientSide()) {
+        if (!level().isClientSide()) {
             virtualMachine.stop();
         }
     }
@@ -245,12 +245,12 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
         spawnAtLocation(stack);
 
         discard();
-        LevelUtils.playSound(level, blockPosition(), SoundType.METAL, SoundType::getBreakSound);
+        LevelUtils.playSound(level(), blockPosition(), SoundType.METAL, SoundType::getBreakSound);
     }
 
     @Override
     public void tick() {
-        final boolean isClient = level.isClientSide();
+        final boolean isClient = level().isClientSide();
 
         if (firstTick) {
             if (isClient) {
@@ -276,7 +276,7 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
 
         actionProcessor.tick();
 
-        if (!isClient && level instanceof final ServerLevel serverLevel) {
+        if (!isClient && level() instanceof final ServerLevel serverLevel) {
             final VoxelShape shape = Shapes.create(getBoundingBox());
             final Cursor3D iterator = getBlockPosIterator();
             while (iterator.advance()) {
@@ -294,8 +294,7 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
                 final VoxelShape blockShape = blockState.getCollisionShape(serverLevel, mutablePosition);
                 if (Shapes.joinIsNotEmpty(shape, blockShape.move(x, y, z), BooleanOp.AND)) {
                     final BlockEntity blockEntity = serverLevel.getBlockEntity(mutablePosition);
-                    final LootContext.Builder builder = new LootContext.Builder(serverLevel)
-                        .withRandom(serverLevel.random)
+                    final LootParams.Builder builder = new LootParams.Builder(serverLevel)
                         .withParameter(LootContextParams.THIS_ENTITY, this)
                         .withParameter(LootContextParams.ORIGIN, position())
                         .withParameter(LootContextParams.TOOL, ItemStack.EMPTY)
@@ -322,7 +321,7 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
     @Override
     public InteractionResult interact(final Player player, final InteractionHand hand) {
         final ItemStack stack = player.getItemInHand(hand);
-        if (!level.isClientSide()) {
+        if (!level().isClientSide()) {
             if (Wrenches.isWrench(stack)) {
                 if (player.isShiftKeyDown()) {
                     dropSelf();
@@ -338,23 +337,18 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
             }
         }
 
-        return InteractionResult.sidedSuccess(level.isClientSide());
+        return InteractionResult.sidedSuccess(level().isClientSide());
     }
 
     @Override
-    public Packet<?> getAddEntityPacket() {
-        return NetworkHooks.getEntitySpawningPacket(this);
+    public Packet<ClientGamePacketListener> getAddEntityPacket(final ServerEntity entity) {
+        return super.getAddEntityPacket(entity);
     }
 
     @Override
-    public void setRemoved(final RemovalReason reason) {
-        super.setRemoved(reason);
-
-        if (!level.isClientSide()) {
-            // Full unload to release out-of-nbt persisted runtime-only data such as ram.
-            virtualMachine.stop();
-            virtualMachine.dispose();
-        }
+    public void remove(final RemovalReason reason) {
+        super.remove(reason);
+        disposeRuntime();
     }
 
     @Override
@@ -382,30 +376,29 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
     }
 
     public void exportToItemStack(final ItemStack stack) {
-        final CompoundTag itemsTag = NBTUtils.getOrCreateChildTag(stack.getOrCreateTag(), MOD_TAG_NAME, ITEMS_TAG_NAME);
-        deviceItems.saveItems(itemsTag); // Puts one tag per device type, as expected by TooltipUtils.
-        itemsTag.put(INVENTORY_TAG_NAME, inventory.serializeNBT()); // Won't show up in tooltip.
+        final CompoundTag itemsTag = NBTUtils.getOrCreateChildTag(ItemStackUtils.getOrCreateModDataTag(stack), ITEMS_TAG_NAME);
+        deviceItems.saveItems(level().registryAccess(), itemsTag); // Puts one tag per device type, as expected by TooltipUtils.
+        itemsTag.put(INVENTORY_TAG_NAME, inventory.serializeNBT(level().registryAccess())); // Won't show up in tooltip.
 
-        NBTUtils.getOrCreateChildTag(stack.getOrCreateTag(), MOD_TAG_NAME)
-            .put(ENERGY_TAG_NAME, energy.serializeNBT());
+        NBTUtils.getOrCreateChildTag(ItemStackUtils.getOrCreateModDataTag(stack))
+            .put(ENERGY_TAG_NAME, energy.serializeNBT(level().registryAccess()));
     }
 
     public void importFromItemStack(final ItemStack stack) {
-        final CompoundTag itemsTag = NBTUtils.getChildTag(stack.getTag(), MOD_TAG_NAME, ITEMS_TAG_NAME);
-        deviceItems.loadItems(itemsTag);
-        inventory.deserializeNBT(itemsTag.getCompound(INVENTORY_TAG_NAME));
+        final CompoundTag itemsTag = NBTUtils.getChildTag(ItemStackUtils.getModDataTag(stack), ITEMS_TAG_NAME);
+        deviceItems.loadItems(level().registryAccess(), itemsTag);
+        inventory.deserializeNBT(level().registryAccess(), itemsTag.getCompound(INVENTORY_TAG_NAME));
 
-        energy.deserializeNBT(NBTUtils.getChildTag(stack.getTag(), MOD_TAG_NAME, ENERGY_TAG_NAME));
+        energy.deserializeNBT(level().registryAccess(), NBTUtils.getChildTag(ItemStackUtils.getModDataTag(stack), ENERGY_TAG_NAME));
     }
 
     ///////////////////////////////////////////////////////////////////
 
     @Override
-    protected void defineSynchedData() {
-        final SynchedEntityData dataManager = getEntityData();
-        dataManager.define(TARGET_POSITION, BlockPos.ZERO);
-        dataManager.define(TARGET_DIRECTION, Direction.NORTH);
-        dataManager.define(SELECTED_SLOT, (byte) 0);
+    protected void defineSynchedData(final SynchedEntityData.Builder builder) {
+        builder.define(TARGET_POSITION, BlockPos.ZERO);
+        builder.define(TARGET_DIRECTION, Direction.NORTH);
+        builder.define(SELECTED_SLOT, (byte) 0);
     }
 
     @Override
@@ -417,10 +410,10 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
 
         tag.put(COMMAND_PROCESSOR_TAG_NAME, actionProcessor.serialize());
         tag.put(BUS_ELEMENT_TAG_NAME, busElement.serialize());
-        tag.put(ITEMS_TAG_NAME, deviceItems.saveItems());
+        tag.put(ITEMS_TAG_NAME, deviceItems.saveItems(level().registryAccess()));
         tag.put(DEVICES_TAG_NAME, deviceItems.saveDevices());
-        tag.put(ENERGY_TAG_NAME, energy.serializeNBT());
-        tag.put(INVENTORY_TAG_NAME, inventory.serializeNBT());
+        tag.put(ENERGY_TAG_NAME, energy.serializeNBT(level().registryAccess()));
+        tag.put(INVENTORY_TAG_NAME, inventory.serializeNBT(level().registryAccess()));
         tag.putByte(SELECTED_SLOT_TAG_NAME, getEntityData().get(SELECTED_SLOT));
     }
 
@@ -430,10 +423,10 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
         NBTSerialization.deserialize(tag.getCompound(TERMINAL_TAG_NAME), terminal);
         actionProcessor.deserialize(tag.getCompound(COMMAND_PROCESSOR_TAG_NAME));
         busElement.deserialize(tag.getCompound(BUS_ELEMENT_TAG_NAME));
-        deviceItems.loadItems(tag.getCompound(ITEMS_TAG_NAME));
+        deviceItems.loadItems(level().registryAccess(), tag.getCompound(ITEMS_TAG_NAME));
         deviceItems.loadDevices(tag.getCompound(DEVICES_TAG_NAME));
-        energy.deserializeNBT(tag.getCompound(ENERGY_TAG_NAME));
-        inventory.deserializeNBT(tag.getCompound(INVENTORY_TAG_NAME));
+        energy.deserializeNBT(level().registryAccess(), tag.getCompound(ENERGY_TAG_NAME));
+        inventory.deserializeNBT(level().registryAccess(), tag.getCompound(INVENTORY_TAG_NAME));
         setSelectedSlot(tag.getByte(SELECTED_SLOT_TAG_NAME));
     }
 
@@ -449,7 +442,7 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
 
     @Override
     protected Vec3 limitPistonMovement(final Vec3 pos) {
-        lastPistonMovement = level.getGameTime();
+        lastPistonMovement = level().getGameTime();
         return super.limitPistonMovement(pos);
     }
 
@@ -461,17 +454,17 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
     }
 
     private void registerListeners() {
-        MinecraftForge.EVENT_BUS.addListener(chunkUnloadListener);
-        MinecraftForge.EVENT_BUS.addListener(worldUnloadListener);
+        NeoForge.EVENT_BUS.addListener(chunkUnloadListener);
+        NeoForge.EVENT_BUS.addListener(worldUnloadListener);
     }
 
     private void unregisterListeners() {
-        MinecraftForge.EVENT_BUS.unregister(chunkUnloadListener);
-        MinecraftForge.EVENT_BUS.unregister(worldUnloadListener);
+        NeoForge.EVENT_BUS.unregister(chunkUnloadListener);
+        NeoForge.EVENT_BUS.unregister(worldUnloadListener);
     }
 
     private void handleChunkUnload(final ChunkEvent.Unload event) {
-        if (event.getWorld() != level) {
+        if (event.getLevel() != level()) {
             return;
         }
 
@@ -485,8 +478,8 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
         virtualMachine.dispose();
     }
 
-    private void handleWorldUnload(final WorldEvent.Unload event) {
-        if (event.getWorld() != level) {
+    private void handleWorldUnload(final LevelEvent.Unload event) {
+        if (event.getLevel() != level()) {
             return;
         }
 
@@ -541,7 +534,7 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
         public float topRenderRotationSpeed;
         public float topRenderHover = -(hashCode() & 0xFFFF); // init to "random" to avoid synchronous hovering
 
-        public void update(final float deltaTime, final Random random) {
+        public void update(final float deltaTime, final RandomSource random) {
             if (getVirtualMachine().isRunning() || actionProcessor.hasQueuedActions()) {
                 topRenderHover = topRenderHover + deltaTime * HOVER_ANIMATION_SPEED;
                 final float topOffsetY = Mth.sin(topRenderHover) / 32f;
@@ -623,7 +616,7 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
         }
 
         public void tick() {
-            if (level.isClientSide()) {
+            if (level().isClientSide()) {
                 RobotActions.performClient(Robot.this);
             } else {
                 if (action != null) {
@@ -706,7 +699,7 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
         }
 
         private boolean addAction(final AbstractRobotAction action) {
-            if (level.isClientSide()) {
+            if (level().isClientSide()) {
                 return false;
             }
 
@@ -745,7 +738,7 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
         @Override
         protected void onChanged() {
             super.onChanged();
-            if (!level.isClientSide()) {
+            if (!level().isClientSide()) {
                 virtualMachine.busController.scheduleBusScan();
             }
         }
@@ -925,5 +918,18 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
 
         private RobotDevice() {
         }
+    }
+
+    private void disposeRuntime() {
+        if (isRuntimeDisposed || level().isClientSide()) {
+            return;
+        }
+
+        isRuntimeDisposed = true;
+        unregisterListeners();
+
+        // Full unload to release out-of-nbt persisted runtime-only data such as ram.
+        virtualMachine.stop();
+        virtualMachine.dispose();
     }
 }

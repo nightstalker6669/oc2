@@ -6,16 +6,14 @@ import li.cil.oc2.api.bus.device.data.BlockDeviceData;
 import li.cil.sedna.api.device.BlockDevice;
 import li.cil.sedna.device.block.ByteBufferBlockDevice;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraftforge.registries.IForgeRegistryEntry;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
 
-public final class ResourceBlockDeviceData implements IForgeRegistryEntry<BlockDeviceData>, BlockDeviceData, AutoCloseable {
+public final class ResourceBlockDeviceData implements BlockDeviceData, AutoCloseable {
     private final ResourceLocation location;
     private final String name;
     private final BlockDevice blockDevice;
@@ -23,8 +21,9 @@ public final class ResourceBlockDeviceData implements IForgeRegistryEntry<BlockD
     public ResourceBlockDeviceData(final ResourceManager resourceManager, final ResourceLocation location, final String name) throws IOException {
         this.location = location;
         this.name = name;
-        final InputStream stream = resourceManager.getResource(location).getInputStream();
-        this.blockDevice = ByteBufferBlockDevice.createFromStream(stream, true);
+        try (final InputStream stream = resourceManager.open(location)) {
+            this.blockDevice = ByteBufferBlockDevice.createFromStream(stream, true);
+        }
     }
 
     @Override
@@ -38,7 +37,6 @@ public final class ResourceBlockDeviceData implements IForgeRegistryEntry<BlockD
         return location;
     }
 
-    @Override
     public Class<BlockDeviceData> getRegistryType() {
         return BlockDeviceData.class;
     }
@@ -55,6 +53,6 @@ public final class ResourceBlockDeviceData implements IForgeRegistryEntry<BlockD
 
     @Override
     public Component getDisplayName() {
-        return new TextComponent(name);
+        return Component.literal(name);
     }
 }

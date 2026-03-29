@@ -2,17 +2,15 @@
 
 package li.cil.oc2.client.gui;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -121,11 +119,11 @@ public final class FileChooserScreen extends Screen {
     }
 
     @Override
-    public void render(final PoseStack stack, final int mouseX, final int mouseY, final float partialTicks) {
-        super.renderBackground(stack);
-        fileList.render(stack, mouseX, mouseY, partialTicks);
-        fileNameTextField.render(stack, mouseX, mouseY, partialTicks);
-        super.render(stack, mouseX, mouseY, partialTicks);
+    public void render(final GuiGraphics graphics, final int mouseX, final int mouseY, final float partialTicks) {
+        renderBackground(graphics, mouseX, mouseY, partialTicks);
+        fileList.render(graphics, mouseX, mouseY, partialTicks);
+        fileNameTextField.render(graphics, mouseX, mouseY, partialTicks);
+        super.render(graphics, mouseX, mouseY, partialTicks);
     }
 
     @Override
@@ -138,7 +136,6 @@ public final class FileChooserScreen extends Screen {
     @Override
     protected void init() {
         super.init();
-        getMinecraft().keyboardHandler.setSendRepeatsToGui(true);
 
         final int widgetsWidth = width - MARGIN * 2;
         final int listHeight = height - MARGIN - WIDGET_SPACING - TEXT_FIELD_HEIGHT - WIDGET_SPACING - BUTTON_HEIGHT - MARGIN;
@@ -157,8 +154,12 @@ public final class FileChooserScreen extends Screen {
         final int buttonTop = fileNameTop + TEXT_FIELD_HEIGHT + WIDGET_SPACING;
         final int buttonCount = 2;
         final int buttonWidth = widgetsWidth / buttonCount - (buttonCount - 1) * WIDGET_SPACING;
-        okButton = addRenderableWidget(new Button(MARGIN, buttonTop, buttonWidth, BUTTON_HEIGHT, TextComponent.EMPTY, this::handleOkPressed));
-        addRenderableWidget(new Button(MARGIN + buttonWidth + WIDGET_SPACING, buttonTop, buttonWidth, BUTTON_HEIGHT, CANCEL_TEXT, this::handleCancelPressed));
+        okButton = addRenderableWidget(Button.builder(Component.empty(), this::handleOkPressed)
+            .bounds(MARGIN, buttonTop, buttonWidth, BUTTON_HEIGHT)
+            .build());
+        addRenderableWidget(Button.builder(CANCEL_TEXT, this::handleCancelPressed)
+            .bounds(MARGIN + buttonWidth + WIDGET_SPACING, buttonTop, buttonWidth, BUTTON_HEIGHT)
+            .build());
 
         fileList.refreshFiles(directory);
 
@@ -278,7 +279,7 @@ public final class FileChooserScreen extends Screen {
 
     private final class FileList extends ObjectSelectionList<FileList.FileEntry> {
         public FileList(final int y, final int height, final int slotHeight) {
-            super(FileChooserScreen.this.getMinecraft(), FileChooserScreen.this.width, FileChooserScreen.this.height, y, y + height, slotHeight);
+            super(FileChooserScreen.this.getMinecraft(), FileChooserScreen.this.width, height, y, slotHeight);
         }
 
         public void refreshFiles(@Nullable final Path directory) {
@@ -347,7 +348,7 @@ public final class FileChooserScreen extends Screen {
         }
 
         private FileList.FileEntry createFileEntry(final Path file) {
-            return new FileList.FileEntry(file, new TextComponent(file.getFileName().toString()));
+            return new FileList.FileEntry(file, Component.literal(file.getFileName().toString()));
         }
 
         private FileList.FileEntry createDirectoryEntry(final Path path) {
@@ -358,7 +359,7 @@ public final class FileChooserScreen extends Screen {
             final TextColor color = path != null && Files.exists(path)
                 ? TextColor.fromRgb(0xA0A0FF)
                 : TextColor.fromLegacyFormat(ChatFormatting.GRAY);
-            return new FileList.FileEntry(path, new TextComponent(displayName)
+            return new FileList.FileEntry(path, Component.literal(displayName)
                 .withStyle(s -> s.withColor(color)));
         }
 
@@ -374,9 +375,9 @@ public final class FileChooserScreen extends Screen {
             }
 
             @Override
-            public void render(final PoseStack stack, final int index, final int top, final int left, final int width, final int height,
+            public void render(final GuiGraphics graphics, final int index, final int top, final int left, final int width, final int height,
                                final int mouseX, final int mouseY, final boolean isHovered, final float deltaTime) {
-                font.drawShadow(stack, displayName, left, top, 0xFFFFFFFF);
+                graphics.drawString(FileChooserScreen.this.font, displayName, left, top, 0xFFFFFFFF, true);
             }
 
             @Override
@@ -405,14 +406,14 @@ public final class FileChooserScreen extends Screen {
                 } else {
                     return;
                 }
-                fileNameTextField.moveCursorToStart();
+                fileNameTextField.moveCursorToStart(false);
                 fileNameTextField.setHighlightPos(0);
                 setSelected(this);
             }
 
             @Override
             public Component getNarration() {
-                return new TranslatableComponent("narrator.select", displayName);
+                return Component.translatable("narrator.select", displayName);
             }
         }
     }

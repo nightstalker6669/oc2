@@ -2,10 +2,13 @@
 
 package li.cil.oc2.common.blockentity;
 
+import li.cil.oc2.api.API;
 import li.cil.oc2.common.util.LazyOptionalUtils;
 import li.cil.oc2.common.util.ServerScheduler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -22,6 +25,7 @@ public abstract class ModBlockEntity extends BlockEntity {
     private final HashMap<CapabilityCacheKey, LazyOptional<?>> capabilityCache = new HashMap<>();
     private boolean needsWorldUnloadEvent;
     private boolean isUnloaded;
+    @Nullable private HolderLookup.Provider currentRegistries;
 
     ///////////////////////////////////////////////////////////////////
 
@@ -32,7 +36,6 @@ public abstract class ModBlockEntity extends BlockEntity {
     ///////////////////////////////////////////////////////////////////
 
     @Nonnull
-    @Override
     public <T> LazyOptional<T> getCapability(final Capability<T> capability, @Nullable final Direction side) {
         if (!isValid()) {
             return LazyOptional.empty();
@@ -62,7 +65,7 @@ public abstract class ModBlockEntity extends BlockEntity {
                 final T instance = list.get(0);
                 value = LazyOptional.of(() -> instance);
             } else {
-                value = super.getCapability(capability, side);
+                value = LazyOptional.empty();
             }
 
             if (value.isPresent()) {
@@ -127,13 +130,54 @@ public abstract class ModBlockEntity extends BlockEntity {
         }
     }
 
-    @Override
     public void invalidateCaps() {
-        super.invalidateCaps();
+        invalidateCapabilities();
 
         // Copy values because invalidate callback will modify map (removes invalidated entry).
         for (final LazyOptional<?> capability : new ArrayList<>(capabilityCache.values())) {
             capability.invalidate();
+        }
+    }
+
+    @Override
+    protected final void saveAdditional(final CompoundTag tag, final HolderLookup.Provider registries) {
+        currentRegistries = registries;
+        try {
+            super.saveAdditional(tag, registries);
+            saveAdditional(tag);
+        } finally {
+            currentRegistries = null;
+        }
+    }
+
+    @Override
+    protected final void loadAdditional(final CompoundTag tag, final HolderLookup.Provider registries) {
+        currentRegistries = registries;
+        try {
+            super.loadAdditional(tag, registries);
+            load(tag);
+        } finally {
+            currentRegistries = null;
+        }
+    }
+
+    @Override
+    public final CompoundTag getUpdateTag(final HolderLookup.Provider registries) {
+        currentRegistries = registries;
+        try {
+            return getUpdateTag();
+        } finally {
+            currentRegistries = null;
+        }
+    }
+
+    @Override
+    public final void handleUpdateTag(final CompoundTag tag, final HolderLookup.Provider registries) {
+        currentRegistries = registries;
+        try {
+            handleUpdateTag(tag);
+        } finally {
+            currentRegistries = null;
         }
     }
 
@@ -148,7 +192,31 @@ public abstract class ModBlockEntity extends BlockEntity {
         needsWorldUnloadEvent = true;
     }
 
+    public CompoundTag getUpdateTag() {
+        return new CompoundTag();
+    }
+
+    public void handleUpdateTag(final CompoundTag tag) {
+        load(tag);
+    }
+
+    protected void saveAdditional(final CompoundTag tag) {
+    }
+
+    public void load(final CompoundTag tag) {
+    }
+
     protected void collectCapabilities(final CapabilityCollector collector, @Nullable final Direction direction) {
+    }
+
+    protected final HolderLookup.Provider getRegistries() {
+        if (currentRegistries != null) {
+            return currentRegistries;
+        }
+        if (level != null) {
+            return level.registryAccess();
+        }
+        throw new IllegalStateException("No registry provider available.");
     }
 
     protected void loadClient() {

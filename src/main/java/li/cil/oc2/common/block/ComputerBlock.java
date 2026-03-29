@@ -2,6 +2,7 @@
 
 package li.cil.oc2.common.block;
 
+import com.mojang.serialization.MapCodec;
 import li.cil.oc2.api.bus.device.DeviceTypes;
 import li.cil.oc2.api.capabilities.RedstoneEmitter;
 import li.cil.oc2.common.Config;
@@ -11,9 +12,11 @@ import li.cil.oc2.common.blockentity.TickableBlockEntity;
 import li.cil.oc2.common.capabilities.Capabilities;
 import li.cil.oc2.common.integration.Wrenches;
 import li.cil.oc2.common.item.Items;
+import li.cil.oc2.common.util.ItemStackUtils;
 import li.cil.oc2.common.util.NBTUtils;
 import li.cil.oc2.common.util.TooltipUtils;
 import li.cil.oc2.common.util.VoxelShapeUtils;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -22,7 +25,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -39,13 +44,12 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -57,6 +61,8 @@ import static li.cil.oc2.common.util.RegistryUtils.key;
 import static li.cil.oc2.common.util.TranslationUtils.text;
 
 public final class ComputerBlock extends HorizontalDirectionalBlock implements EntityBlock {
+    public static final MapCodec<ComputerBlock> CODEC = simpleCodec(ComputerBlock::new);
+
     // We bake the "screen" indent on the front into the collision shape, to prevent stuff being
     // placeable on that side, such as network connectors, torches, etc.
     private static final VoxelShape NEG_Z_SHAPE = Shapes.or(
@@ -73,16 +79,19 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
     ///////////////////////////////////////////////////////////////////
 
     public ComputerBlock() {
-        super(Properties
-            .of(Material.METAL)
+        this(Properties
+            .of()
             .sound(SoundType.METAL)
             .strength(1.5f, 6.0f));
+    }
+
+    public ComputerBlock(final Properties properties) {
+        super(properties);
         registerDefaultState(getStateDefinition().any().setValue(FACING, Direction.NORTH));
     }
 
     ///////////////////////////////////////////////////////////////////
 
-    @Override
     public void fillItemCategory(final CreativeModeTab group, final NonNullList<ItemStack> items) {
         items.add(getComputerWithFlash());
         items.add(getPreconfiguredComputer());
@@ -90,8 +99,8 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
 
     @OnlyIn(Dist.CLIENT)
     @Override
-    public void appendHoverText(final ItemStack stack, @Nullable final BlockGetter level, final List<Component> tooltip, final TooltipFlag advanced) {
-        super.appendHoverText(stack, level, tooltip, advanced);
+    public void appendHoverText(final ItemStack stack, final Item.TooltipContext context, final List<Component> tooltip, final TooltipFlag advanced) {
+        super.appendHoverText(stack, context, tooltip, advanced);
         TooltipUtils.addEnergyConsumption(Config.computerEnergyPerTick, tooltip);
         TooltipUtils.addBlockEntityInventoryInformation(stack, tooltip);
     }
@@ -109,7 +118,7 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
         if (blockEntity != null) {
             // Redstone requests info for faces with external perspective. Capabilities treat
             // the Direction from internal perspective, so flip it.
-            return blockEntity.getCapability(Capabilities.redstoneEmitter(), side.getOpposite())
+            return Capabilities.getCapability(blockEntity, Capabilities.redstoneEmitter(), side.getOpposite())
                 .map(RedstoneEmitter::getRedstoneOutput)
                 .orElse(0);
         }
@@ -123,7 +132,6 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
         return getSignal(state, level, pos, side);
     }
 
-    @Override
     public boolean shouldCheckWeakPower(final BlockState state, final LevelReader level, final BlockPos pos, final Direction side) {
         return false;
     }
@@ -148,38 +156,49 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
         };
     }
 
-    @SuppressWarnings("deprecation")
     @Override
-    public InteractionResult use(final BlockState state, final Level level, final BlockPos pos, final Player player, final InteractionHand hand, final BlockHitResult hit) {
+    protected ItemInteractionResult useItemOn(final ItemStack heldItem, final BlockState state, final Level level, final BlockPos pos, final Player player, final InteractionHand hand, final BlockHitResult hit) {
         final BlockEntity blockEntity = level.getBlockEntity(pos);
         if (!(blockEntity instanceof final ComputerBlockEntity computer)) {
-            return super.use(state, level, pos, player, hand, hit);
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
-        final ItemStack heldItem = player.getItemInHand(hand);
         if (Wrenches.isWrench(heldItem)) {
             if (!player.isShiftKeyDown()) {
                 if (!level.isClientSide() && player instanceof final ServerPlayer serverPlayer) {
                     computer.openInventoryScreen(serverPlayer);
                 }
-                return InteractionResult.sidedSuccess(level.isClientSide());
+                return ItemInteractionResult.sidedSuccess(level.isClientSide());
             }
-        } else {
-            if (!level.isClientSide()) {
-                if (player.isShiftKeyDown()) {
-                    computer.start();
-                } else if (player instanceof final ServerPlayer serverPlayer) {
-                    computer.openTerminalScreen(serverPlayer);
-                }
-            }
-            return InteractionResult.sidedSuccess(level.isClientSide());
         }
 
-        return super.use(state, level, pos, player, hand, hit);
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 
     @Override
-    public void playerWillDestroy(final Level level, final BlockPos pos, final BlockState state, final Player player) {
+    protected InteractionResult useWithoutItem(final BlockState state, final Level level, final BlockPos pos, final Player player, final BlockHitResult hit) {
+        final BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (!(blockEntity instanceof final ComputerBlockEntity computer)) {
+            return InteractionResult.PASS;
+        }
+
+        if (Wrenches.isHoldingWrench(player)) {
+            return InteractionResult.PASS;
+        }
+
+        if (!level.isClientSide()) {
+            if (player.isShiftKeyDown()) {
+                computer.start();
+            } else if (player instanceof final ServerPlayer serverPlayer) {
+                computer.openTerminalScreen(serverPlayer);
+            }
+        }
+
+        return InteractionResult.sidedSuccess(level.isClientSide());
+    }
+
+    @Override
+    public BlockState playerWillDestroy(final Level level, final BlockPos pos, final BlockState state, final Player player) {
         final BlockEntity blockEntity = level.getBlockEntity(pos);
         if (!level.isClientSide() && blockEntity instanceof final ComputerBlockEntity computer) {
             if (!computer.getItemStackHandlers().isEmpty()) {
@@ -193,7 +212,7 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
             }
         }
 
-        super.playerWillDestroy(level, pos, state, player);
+        return super.playerWillDestroy(level, pos, state, player);
     }
 
     @Override
@@ -219,6 +238,11 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
     ///////////////////////////////////////////////////////////////////
 
     @Override
+    protected MapCodec<? extends HorizontalDirectionalBlock> codec() {
+        return CODEC;
+    }
+
+    @Override
     protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
         super.createBlockStateDefinition(builder);
         builder.add(FACING);
@@ -229,7 +253,7 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
     private ItemStack getComputerWithFlash() {
         final ItemStack computer = new ItemStack(this);
 
-        final CompoundTag itemsTag = NBTUtils.getOrCreateChildTag(computer.getOrCreateTag(), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME);
+        final CompoundTag itemsTag = NBTUtils.getOrCreateChildTag(ItemStackUtils.getOrCreateModDataTag(computer), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME);
         itemsTag.put(key(DeviceTypes.FLASH_MEMORY), makeInventoryTag(
             new ItemStack(Items.FLASH_MEMORY_CUSTOM.get())
         ));
@@ -240,7 +264,7 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
     private ItemStack getPreconfiguredComputer() {
         final ItemStack computer = getComputerWithFlash();
 
-        final CompoundTag itemsTag = NBTUtils.getOrCreateChildTag(computer.getOrCreateTag(), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME);
+        final CompoundTag itemsTag = NBTUtils.getOrCreateChildTag(ItemStackUtils.getOrCreateModDataTag(computer), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME);
         itemsTag.put(key(DeviceTypes.MEMORY), makeInventoryTag(
             new ItemStack(Items.MEMORY_LARGE.get()),
             new ItemStack(Items.MEMORY_LARGE.get()),
@@ -254,7 +278,7 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
             new ItemStack(Items.NETWORK_INTERFACE_CARD.get())
         ));
 
-        computer.setHoverName(text("block.{mod}.computer.preconfigured"));
+        computer.set(DataComponents.CUSTOM_NAME, text("block.{mod}.computer.preconfigured"));
 
         return computer;
     }

@@ -3,22 +3,20 @@
 package li.cil.oc2.client.gui;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.vertex.PoseStack;
 import li.cil.oc2.client.gui.widget.ImageButton;
 import li.cil.oc2.client.gui.widget.ToggleImageButton;
 import li.cil.oc2.common.Constants;
 import li.cil.oc2.common.container.AbstractMachineTerminalContainer;
 import li.cil.oc2.common.util.TooltipUtils;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -101,8 +99,8 @@ public abstract class AbstractMachineTerminalScreen<T extends AbstractMachineTer
         super.init();
         terminalWidget.init();
 
-        final EditBox focusIndicatorEditBox = new EditBox(font, 0, 0, 0, 0, TextComponent.EMPTY);
-        focusIndicatorEditBox.setFocus(true);
+        final EditBox focusIndicatorEditBox = new EditBox(font, 0, 0, 0, 0, Component.empty());
+        focusIndicatorEditBox.setFocused(true);
         setFocusIndicatorEditBox(focusIndicatorEditBox);
 
         addRenderableWidget(new ToggleImageButton(
@@ -123,8 +121,8 @@ public abstract class AbstractMachineTerminalScreen<T extends AbstractMachineTer
                 return menu.getVirtualMachine().isRunning();
             }
         }).withTooltip(
-            new TranslatableComponent(Constants.COMPUTER_SCREEN_POWER_CAPTION),
-            new TranslatableComponent(Constants.COMPUTER_SCREEN_POWER_DESCRIPTION)
+            Component.translatable(Constants.COMPUTER_SCREEN_POWER_CAPTION),
+            Component.translatable(Constants.COMPUTER_SCREEN_POWER_DESCRIPTION)
         );
 
         addRenderableWidget(new ToggleImageButton(
@@ -145,8 +143,8 @@ public abstract class AbstractMachineTerminalScreen<T extends AbstractMachineTer
                 return isInputCaptureEnabled;
             }
         }).withTooltip(
-            new TranslatableComponent(Constants.TERMINAL_CAPTURE_INPUT_CAPTION),
-            new TranslatableComponent(Constants.TERMINAL_CAPTURE_INPUT_DESCRIPTION)
+            Component.translatable(Constants.TERMINAL_CAPTURE_INPUT_CAPTION),
+            Component.translatable(Constants.TERMINAL_CAPTURE_INPUT_DESCRIPTION)
         );
 
         addRenderableWidget(new ImageButton(
@@ -159,7 +157,7 @@ public abstract class AbstractMachineTerminalScreen<T extends AbstractMachineTer
             public void onPress() {
                 menu.switchToInventory();
             }
-        }).withTooltip(new TranslatableComponent(Constants.MACHINE_OPEN_INVENTORY_CAPTION));
+        }).withTooltip(Component.translatable(Constants.MACHINE_OPEN_INVENTORY_CAPTION));
     }
 
     @Override
@@ -176,52 +174,52 @@ public abstract class AbstractMachineTerminalScreen<T extends AbstractMachineTer
     protected abstract void setFocusIndicatorEditBox(final EditBox editBox);
 
     @Override
-    protected void renderFg(final PoseStack stack, final float partialTicks, final int mouseX, final int mouseY) {
-        super.renderFg(stack, partialTicks, mouseX, mouseY);
+    protected void renderFg(final GuiGraphics graphics, final float partialTicks, final int mouseX, final int mouseY) {
+        super.renderFg(graphics, partialTicks, mouseX, mouseY);
 
         if (shouldRenderEnergyBar()) {
             final int x = leftPos - Sprites.SIDEBAR_2.width + 4;
             final int y = topPos + ENERGY_TOP + 4;
-            Sprites.ENERGY_BAR.drawFillY(stack, x, y, menu.getEnergy() / (float) menu.getEnergyCapacity());
+            Sprites.ENERGY_BAR.drawFillY(graphics, x, y, menu.getEnergy() / (float) menu.getEnergyCapacity());
         }
 
-        terminalWidget.render(stack, mouseX, mouseY, menu.getVirtualMachine().getError());
+        terminalWidget.render(graphics, mouseX, mouseY, menu.getVirtualMachine().getError());
     }
 
     @Override
-    protected void renderBg(final PoseStack stack, final float partialTicks, final int mouseX, final int mouseY) {
-        Sprites.SIDEBAR_3.draw(stack, leftPos - Sprites.SIDEBAR_3.width, topPos + CONTROLS_TOP);
+    protected void renderBg(final GuiGraphics graphics, final float partialTicks, final int mouseX, final int mouseY) {
+        Sprites.SIDEBAR_3.draw(graphics, leftPos - Sprites.SIDEBAR_3.width, topPos + CONTROLS_TOP);
 
         if (shouldRenderEnergyBar()) {
             final int x = leftPos - Sprites.SIDEBAR_2.width;
             final int y = topPos + ENERGY_TOP;
-            Sprites.SIDEBAR_2.draw(stack, x, y);
-            Sprites.ENERGY_BASE.draw(stack, x + 4, y + 4);
+            Sprites.SIDEBAR_2.draw(graphics, x, y);
+            Sprites.ENERGY_BASE.draw(graphics, x + 4, y + 4);
         }
 
-        terminalWidget.renderBackground(stack, mouseX, mouseY);
+        terminalWidget.renderBackground(graphics, mouseX, mouseY);
     }
 
     @Override
-    protected void renderTooltip(final PoseStack stack, final int mouseX, final int mouseY) {
-        super.renderTooltip(stack, mouseX, mouseY);
+    protected void renderTooltip(final GuiGraphics graphics, final int mouseX, final int mouseY) {
+        super.renderTooltip(graphics, mouseX, mouseY);
 
         if (shouldRenderEnergyBar()) {
 
             if (isMouseOver(mouseX, mouseY, -Sprites.SIDEBAR_2.width + 4, ENERGY_TOP + 4, Sprites.ENERGY_BAR.width, Sprites.ENERGY_BAR.height)) {
                 final List<? extends FormattedText> tooltip = asList(
-                    new TranslatableComponent(Constants.TOOLTIP_ENERGY,
+                    Component.translatable(Constants.TOOLTIP_ENERGY,
                         withFormat(menu.getEnergy() + "/" + menu.getEnergyCapacity(), ChatFormatting.GREEN)),
-                    new TranslatableComponent(Constants.TOOLTIP_ENERGY_CONSUMPTION,
+                    Component.translatable(Constants.TOOLTIP_ENERGY_CONSUMPTION,
                         withFormat(String.valueOf(menu.getEnergyConsumption()), ChatFormatting.GREEN))
                 );
-                TooltipUtils.drawTooltip(stack, tooltip, mouseX, mouseY, 200);
+                TooltipUtils.drawTooltip(graphics, tooltip, mouseX, mouseY, 200);
             }
         }
     }
 
     @Override
-    protected void renderLabels(final PoseStack stack, final int mouseX, final int mouseY) {
+    protected void renderLabels(final GuiGraphics graphics, final int mouseX, final int mouseY) {
         // This is required to prevent the labels from being rendered
     }
 

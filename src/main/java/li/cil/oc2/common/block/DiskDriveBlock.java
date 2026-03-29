@@ -2,12 +2,14 @@
 
 package li.cil.oc2.common.block;
 
+import com.mojang.serialization.MapCodec;
 import li.cil.oc2.common.blockentity.BlockEntities;
 import li.cil.oc2.common.blockentity.DiskDriveBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -19,17 +21,22 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.BlockHitResult;
 
 import javax.annotation.Nullable;
 
 public final class DiskDriveBlock extends HorizontalDirectionalBlock implements EntityBlock {
+    public static final MapCodec<DiskDriveBlock> CODEC = simpleCodec(DiskDriveBlock::new);
+
     public DiskDriveBlock() {
-        super(Properties
-            .of(Material.METAL)
+        this(Properties
+            .of()
             .sound(SoundType.METAL)
             .strength(1.5f, 6.0f));
+    }
+
+    public DiskDriveBlock(final Properties properties) {
+        super(properties);
         registerDefaultState(getStateDefinition().any().setValue(FACING, Direction.NORTH));
     }
 
@@ -40,32 +47,47 @@ public final class DiskDriveBlock extends HorizontalDirectionalBlock implements 
         return super.defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
     }
 
-    @SuppressWarnings("deprecation")
     @Override
-    public InteractionResult use(final BlockState state, final Level level, final BlockPos pos, final Player player, final InteractionHand hand, final BlockHitResult hit) {
+    protected ItemInteractionResult useItemOn(final ItemStack heldStack, final BlockState state, final Level level, final BlockPos pos, final Player player, final InteractionHand hand, final BlockHitResult hit) {
         final BlockEntity blockEntity = level.getBlockEntity(pos);
         if (!(blockEntity instanceof final DiskDriveBlockEntity diskDrive)) {
-            return super.use(state, level, pos, player, hand, hit);
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
-        final ItemStack heldStack = player.getItemInHand(hand);
         if (player.isShiftKeyDown()) {
             if (diskDrive.canEject()) {
                 if (!level.isClientSide()) {
                     diskDrive.eject(player);
                 }
-                return InteractionResult.sidedSuccess(level.isClientSide());
+                return ItemInteractionResult.sidedSuccess(level.isClientSide());
             }
         } else {
             if (diskDrive.canInsert(heldStack)) {
                 if (!level.isClientSide()) {
                     player.setItemInHand(hand, diskDrive.insert(heldStack, player));
                 }
-                return InteractionResult.sidedSuccess(level.isClientSide());
+                return ItemInteractionResult.sidedSuccess(level.isClientSide());
             }
         }
 
-        return super.use(state, level, pos, player, hand, hit);
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(final BlockState state, final Level level, final BlockPos pos, final Player player, final BlockHitResult hit) {
+        final BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (!(blockEntity instanceof final DiskDriveBlockEntity diskDrive)) {
+            return InteractionResult.PASS;
+        }
+
+        if (player.isShiftKeyDown() && diskDrive.canEject()) {
+            if (!level.isClientSide()) {
+                diskDrive.eject(player);
+            }
+            return InteractionResult.sidedSuccess(level.isClientSide());
+        }
+
+        return InteractionResult.PASS;
     }
 
     ///////////////////////////////////////////////////////////////////
@@ -78,6 +100,11 @@ public final class DiskDriveBlock extends HorizontalDirectionalBlock implements 
     }
 
     ///////////////////////////////////////////////////////////////////
+
+    @Override
+    protected MapCodec<? extends HorizontalDirectionalBlock> codec() {
+        return CODEC;
+    }
 
     @Override
     protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {

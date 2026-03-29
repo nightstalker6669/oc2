@@ -16,10 +16,10 @@ import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.profiling.ProfilerFiller;
-import net.minecraftforge.event.AddReloadListenerEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -31,7 +31,7 @@ import java.util.concurrent.Executor;
 
 import static li.cil.oc2.common.util.TextFormatUtils.formatSize;
 
-@Mod.EventBusSubscriber(modid = API.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+@EventBusSubscriber(modid = API.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
 public final class FileSystems {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final LayeredFileSystem LAYERED_FILE_SYSTEM = new LayeredFileSystem();
@@ -79,7 +79,8 @@ public final class FileSystems {
 
         LOGGER.info("Searching for datapack filesystems...");
         final Collection<ResourceLocation> fileSystemDescriptorLocations = resourceManager
-            .listResources("file_systems", s -> s.endsWith(".json"));
+            .listResources("file_systems", location -> location.getPath().endsWith(".json"))
+            .keySet();
 
         final ArrayList<ZipStreamFileSystem> fileSystems = new ArrayList<>();
         final Object2IntArrayMap<ZipStreamFileSystem> fileSystemOrder = new Object2IntArrayMap<>();
@@ -87,15 +88,18 @@ public final class FileSystems {
         for (final ResourceLocation fileSystemDescriptorLocation : fileSystemDescriptorLocations) {
             LOGGER.info("Found [{}]", fileSystemDescriptorLocation);
             try {
-                final Resource fileSystemDescriptor = resourceManager.getResource(fileSystemDescriptorLocation);
-                final JsonObject json = JsonParser.parseReader(new InputStreamReader(fileSystemDescriptor.getInputStream())).getAsJsonObject();
+                final Resource fileSystemDescriptor = resourceManager.getResourceOrThrow(fileSystemDescriptorLocation);
+                final JsonObject json;
+                try (final InputStreamReader reader = new InputStreamReader(fileSystemDescriptor.open())) {
+                    json = JsonParser.parseReader(reader).getAsJsonObject();
+                }
                 final String type = json.getAsJsonPrimitive("type").getAsString();
                 switch (type) {
                     case "layer" -> {
-                        final ResourceLocation location = new ResourceLocation(json.getAsJsonPrimitive("location").getAsString());
+                        final ResourceLocation location = ResourceLocation.parse(json.getAsJsonPrimitive("location").getAsString());
 
                         final ZipStreamFileSystem fileSystem;
-                        try (final InputStream stream = resourceManager.getResource(location).getInputStream()) {
+                        try (final InputStream stream = resourceManager.open(location)) {
                             fileSystem = new ZipStreamFileSystem(stream);
                         }
 
@@ -115,7 +119,7 @@ public final class FileSystems {
                         }
                     }
                     case "block" -> {
-                        final ResourceLocation location = new ResourceLocation(json.getAsJsonPrimitive("location").getAsString());
+                        final ResourceLocation location = ResourceLocation.parse(json.getAsJsonPrimitive("location").getAsString());
                         if (BlockDeviceDataRegistry.getValue(location) != null) {
                             LOGGER.error("Block device from datapack collides with already registered location [{}].", location);
                             continue;

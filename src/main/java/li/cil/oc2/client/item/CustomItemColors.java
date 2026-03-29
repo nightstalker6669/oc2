@@ -2,11 +2,11 @@
 
 package li.cil.oc2.client.item;
 
+import li.cil.oc2.common.item.DyeableLeatherItem;
 import li.cil.oc2.common.item.Items;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.color.item.ItemColors;
 import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 

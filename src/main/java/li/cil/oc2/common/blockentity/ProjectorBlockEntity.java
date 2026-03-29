@@ -184,17 +184,16 @@ public final class ProjectorBlockEntity extends ModBlockEntity implements Tickab
     protected void saveAdditional(final CompoundTag tag) {
         super.saveAdditional(tag);
 
-        tag.put(ENERGY_TAG_NAME, energy.serializeNBT());
+        tag.put(ENERGY_TAG_NAME, energy.serializeNBT(getRegistries()));
     }
 
     @Override
     public void load(final CompoundTag tag) {
         super.load(tag);
 
-        energy.deserializeNBT(tag.getCompound(ENERGY_TAG_NAME));
+        energy.deserializeNBT(getRegistries(), tag.getCompound(ENERGY_TAG_NAME));
     }
 
-    @Override
     public AABB getRenderBoundingBox() {
         return renderBounds;
     }

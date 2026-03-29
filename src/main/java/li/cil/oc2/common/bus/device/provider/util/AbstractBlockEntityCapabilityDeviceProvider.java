@@ -33,7 +33,7 @@ public abstract class AbstractBlockEntityCapabilityDeviceProvider<TCapability, T
     protected final Invalidatable<Device> getBlockDevice(final BlockDeviceQuery query, final BlockEntity blockEntity) {
         final Capability<TCapability> capability = capabilitySupplier.get();
         if (capability == null) throw new IllegalStateException();
-        final LazyOptional<TCapability> optional = blockEntity.getCapability(capability, query.getQuerySide());
+        final LazyOptional<TCapability> optional = li.cil.oc2.common.capabilities.Capabilities.getCapability(blockEntity, capability, query.getQuerySide());
         if (!optional.isPresent()) {
             return Invalidatable.empty();
         }

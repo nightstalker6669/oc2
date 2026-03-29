@@ -9,16 +9,30 @@ import li.cil.oc2.common.bus.device.provider.item.*;
 import li.cil.oc2.common.bus.device.rpc.block.*;
 import net.minecraftforge.registries.IForgeRegistry;
 
+import javax.annotation.Nullable;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 public final class Providers {
+    @Nullable private static Supplier<IForgeRegistry<BlockDeviceProvider>> blockDeviceProviderRegistryOverride;
+    @Nullable private static Supplier<IForgeRegistry<ItemDeviceProvider>> itemDeviceProviderRegistryOverride;
+
     public static IForgeRegistry<BlockDeviceProvider> blockDeviceProviderRegistry() {
-        return ProviderRegistry.BLOCK_DEVICE_PROVIDER_REGISTRY.get();
+        final Supplier<IForgeRegistry<BlockDeviceProvider>> override = blockDeviceProviderRegistryOverride;
+        return override != null ? override.get() : ProviderRegistry.BLOCK_DEVICE_PROVIDER_REGISTRY.get();
     }
 
     public static IForgeRegistry<ItemDeviceProvider> itemDeviceProviderRegistry() {
-        return ProviderRegistry.ITEM_DEVICE_PROVIDER_REGISTRY.get();
+        final Supplier<IForgeRegistry<ItemDeviceProvider>> override = itemDeviceProviderRegistryOverride;
+        return override != null ? override.get() : ProviderRegistry.ITEM_DEVICE_PROVIDER_REGISTRY.get();
+    }
+
+    public static void setBlockDeviceProviderRegistryOverride(@Nullable final Supplier<IForgeRegistry<BlockDeviceProvider>> override) {
+        blockDeviceProviderRegistryOverride = override;
+    }
+
+    public static void setItemDeviceProviderRegistryOverride(@Nullable final Supplier<IForgeRegistry<ItemDeviceProvider>> override) {
+        itemDeviceProviderRegistryOverride = override;
     }
 
     public static void registerBlockDeviceProviders(final BiConsumer<String, Supplier<BlockDeviceProvider>> registry) {

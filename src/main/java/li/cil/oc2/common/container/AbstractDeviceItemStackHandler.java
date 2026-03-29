@@ -3,6 +3,7 @@
 package li.cil.oc2.common.container;
 
 import li.cil.oc2.common.bus.AbstractItemDeviceBusElement;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
@@ -29,25 +30,25 @@ public abstract class AbstractDeviceItemStackHandler extends FixedSizeItemStackH
     }
 
     @Override
-    public final CompoundTag serializeNBT() {
+    public final CompoundTag serializeNBT(final HolderLookup.Provider provider) {
         throw new UnsupportedOperationException("Use saveItems and saveDevices instead.");
     }
 
     @Override
-    public final void deserializeNBT(final CompoundTag tag) {
+    public final void deserializeNBT(final HolderLookup.Provider provider, final CompoundTag tag) {
         throw new UnsupportedOperationException("Use loadItems and loadDevices instead.");
     }
 
-    public CompoundTag saveItems() {
-        return super.serializeNBT();
+    public CompoundTag saveItems(final HolderLookup.Provider provider) {
+        return super.serializeNBT(provider);
     }
 
     public CompoundTag saveDevices() {
         return getBusElement().save();
     }
 
-    public void loadItems(final CompoundTag tag) {
-        super.deserializeNBT(tag);
+    public void loadItems(final HolderLookup.Provider provider, final CompoundTag tag) {
+        super.deserializeNBT(provider, tag);
         for (int slot = 0; slot < getSlots(); slot++) {
             getBusElement().handleSlotContentsChanged(slot, getStackInSlot(slot));
         }

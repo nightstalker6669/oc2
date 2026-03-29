@@ -5,17 +5,17 @@ package li.cil.oc2.data;
 import li.cil.oc2.api.API;
 import li.cil.oc2.common.entity.Entities;
 import li.cil.oc2.common.item.Items;
-import net.minecraft.data.DataGenerator;
+import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
-import net.minecraftforge.client.model.generators.ItemModelBuilder;
-import net.minecraftforge.client.model.generators.ItemModelProvider;
-import net.minecraftforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.client.model.generators.ItemModelBuilder;
+import net.neoforged.neoforge.client.model.generators.ItemModelProvider;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import net.minecraftforge.registries.RegistryObject;
 
 public final class ModItemModelProvider extends ItemModelProvider {
-    public ModItemModelProvider(final DataGenerator generator, final ExistingFileHelper existingFileHelper) {
-        super(generator, API.MOD_ID, existingFileHelper);
+    public ModItemModelProvider(final PackOutput output, final ExistingFileHelper existingFileHelper) {
+        super(output, API.MOD_ID, existingFileHelper);
     }
 
     @Override
@@ -63,8 +63,8 @@ public final class ModItemModelProvider extends ItemModelProvider {
 
     private <T extends Item> ItemModelBuilder simple(final RegistryObject<T> item, final String texturePath) {
         return singleTexture(item.getId().getPath(),
-            new ResourceLocation("item/generated"),
+            ResourceLocation.withDefaultNamespace("item/generated"),
             "layer0",
-            new ResourceLocation(API.MOD_ID, texturePath));
+            ResourceLocation.fromNamespaceAndPath(API.MOD_ID, texturePath));
     }
 }

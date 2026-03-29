@@ -12,6 +12,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.RegistryObject;
 import net.minecraftforge.registries.RegistryBuilder;
 
 import java.util.function.Supplier;
@@ -24,26 +25,26 @@ public final class DeviceTypes {
     ///////////////////////////////////////////////////////////////////
 
     public static final Supplier<IForgeRegistry<DeviceType>> DEVICE_TYPE_REGISTRY = DEVICE_TYPES.makeRegistry(DeviceType.class, RegistryBuilder::new);
+    public static final RegistryObject<DeviceType> MEMORY = register(ItemTags.DEVICES_MEMORY);
+    public static final RegistryObject<DeviceType> HARD_DRIVE = register(ItemTags.DEVICES_HARD_DRIVE);
+    public static final RegistryObject<DeviceType> FLASH_MEMORY = register(ItemTags.DEVICES_FLASH_MEMORY);
+    public static final RegistryObject<DeviceType> CARD = register(ItemTags.DEVICES_CARD);
+    public static final RegistryObject<DeviceType> ROBOT_MODULE = register(ItemTags.DEVICES_ROBOT_MODULE);
+    public static final RegistryObject<DeviceType> FLOPPY = register(ItemTags.DEVICES_FLOPPY);
+    public static final RegistryObject<DeviceType> NETWORK_TUNNEL = register(ItemTags.DEVICES_NETWORK_TUNNEL);
 
     ///////////////////////////////////////////////////////////////////
 
     public static void initialize() {
-        register(ItemTags.DEVICES_MEMORY);
-        register(ItemTags.DEVICES_HARD_DRIVE);
-        register(ItemTags.DEVICES_FLASH_MEMORY);
-        register(ItemTags.DEVICES_CARD);
-        register(ItemTags.DEVICES_ROBOT_MODULE);
-        register(ItemTags.DEVICES_FLOPPY);
-        register(ItemTags.DEVICES_NETWORK_TUNNEL);
     }
 
     ///////////////////////////////////////////////////////////////////
 
-    private static void register(final TagKey<Item> tag) {
+    private static RegistryObject<DeviceType> register(final TagKey<Item> tag) {
         final String id = tag.location().getPath().replaceFirst("^devices/", "");
-        DEVICE_TYPES.register(id, () -> new DeviceTypeImpl(
+        return DEVICE_TYPES.register(id, () -> new DeviceTypeImpl(
             tag,
-            new ResourceLocation(API.MOD_ID, "gui/icon/" + id),
+            ResourceLocation.fromNamespaceAndPath(API.MOD_ID, "gui/icon/" + id),
             text("gui.{mod}.device_type." + id)
         ));
     }

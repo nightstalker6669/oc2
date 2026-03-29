@@ -8,14 +8,12 @@ import com.google.common.cache.RemovalNotification;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Matrix4f;
-import com.mojang.math.Quaternion;
-import com.mojang.math.Vector3f;
+import com.mojang.math.Axis;
 import li.cil.oc2.api.API;
 import li.cil.oc2.client.renderer.ModRenderType;
 import li.cil.oc2.common.block.ComputerBlock;
 import li.cil.oc2.common.blockentity.ComputerBlockEntity;
-import li.cil.oc2.common.util.ChainableVertexConsumer;
+import net.minecraft.client.Minecraft;
 import li.cil.oc2.common.vm.Terminal;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -30,20 +28,21 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import org.joml.Matrix4f;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = API.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+@EventBusSubscriber(value = Dist.CLIENT, modid = API.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
 public final class ComputerRenderer implements BlockEntityRenderer<ComputerBlockEntity> {
-    public static final ResourceLocation OVERLAY_POWER_LOCATION = new ResourceLocation(API.MOD_ID, "block/computer/computer_overlay_power");
-    public static final ResourceLocation OVERLAY_STATUS_LOCATION = new ResourceLocation(API.MOD_ID, "block/computer/computer_overlay_status");
-    public static final ResourceLocation OVERLAY_TERMINAL_LOCATION = new ResourceLocation(API.MOD_ID, "block/computer/computer_overlay_terminal");
+    public static final ResourceLocation OVERLAY_POWER_LOCATION = ResourceLocation.fromNamespaceAndPath(API.MOD_ID, "block/computer/computer_overlay_power");
+    public static final ResourceLocation OVERLAY_STATUS_LOCATION = ResourceLocation.fromNamespaceAndPath(API.MOD_ID, "block/computer/computer_overlay_status");
+    public static final ResourceLocation OVERLAY_TERMINAL_LOCATION = ResourceLocation.fromNamespaceAndPath(API.MOD_ID, "block/computer/computer_overlay_terminal");
 
     private static final Material TEXTURE_POWER = new Material(InventoryMenu.BLOCK_ATLAS, OVERLAY_POWER_LOCATION);
     private static final Material TEXTURE_STATUS = new Material(InventoryMenu.BLOCK_ATLAS, OVERLAY_STATUS_LOCATION);
@@ -82,9 +81,8 @@ public final class ComputerRenderer implements BlockEntityRenderer<ComputerBlock
         stack.pushPose();
 
         // Align with front face of block.
-        final Quaternion rotation = new Quaternion(Vector3f.YN, blockFacing.toYRot() + 180, true);
         stack.translate(0.5f, 0, 0.5f);
-        stack.mulPose(rotation);
+        stack.mulPose(Axis.YN.rotationDegrees(blockFacing.toYRot() + 180));
         stack.translate(-0.5f, 0, -0.5f);
 
         // Flip and align with top left corner.
@@ -98,7 +96,7 @@ public final class ComputerRenderer implements BlockEntityRenderer<ComputerBlock
         if (computer.getVirtualMachine().isRunning()) {
             renderTerminal(computer, stack, bufferSource, cameraPosition);
         } else {
-            renderStatusText(computer, stack, cameraPosition);
+            renderStatusText(computer, stack, bufferSource, cameraPosition);
         }
 
         stack.translate(0, 0, -0.1f);
@@ -178,7 +176,7 @@ public final class ComputerRenderer implements BlockEntityRenderer<ComputerBlock
         }
     }
 
-    private void renderStatusText(final ComputerBlockEntity computer, final PoseStack stack, final Vec3 cameraPosition) {
+    private void renderStatusText(final ComputerBlockEntity computer, final PoseStack stack, final MultiBufferSource bufferSource, final Vec3 cameraPosition) {
         if (!Vec3.atCenterOf(computer.getBlockPos()).closerThan(cameraPosition, 12f)) {
             return;
         }
@@ -191,25 +189,25 @@ public final class ComputerRenderer implements BlockEntityRenderer<ComputerBlock
         stack.pushPose();
         stack.translate(3, 3, -0.9f);
 
-        drawText(stack, bootError);
+        drawText(stack, bufferSource, bootError);
 
         stack.popPose();
     }
 
-    private void drawText(final PoseStack stack, final Component text) {
+    private void drawText(final PoseStack stack, final MultiBufferSource bufferSource, final Component text) {
         final int maxWidth = 100;
 
         stack.pushPose();
         stack.scale(10f / maxWidth, 10f / maxWidth, 10f / maxWidth);
 
-        final Font fontRenderer = renderer.font;
+        final Font fontRenderer = Minecraft.getInstance().font;
         final List<FormattedText> wrappedText = fontRenderer.getSplitter().splitLines(text, maxWidth, Style.EMPTY);
         if (wrappedText.size() == 1) {
             final int textWidth = fontRenderer.width(text);
-            fontRenderer.draw(stack, text, (maxWidth - textWidth) * 0.5f, 0, 0xEE3322);
+            fontRenderer.drawInBatch(text, (maxWidth - textWidth) * 0.5f, 0, 0xEE3322, false, stack.last().pose(), bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
         } else {
             for (int i = 0; i < wrappedText.size(); i++) {
-                fontRenderer.draw(stack, wrappedText.get(i).getString(), 0, i * fontRenderer.lineHeight, 0xEE3322);
+                fontRenderer.drawInBatch(wrappedText.get(i).getString(), 0, i * fontRenderer.lineHeight, 0xEE3322, false, stack.last().pose(), bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
             }
         }
 
@@ -231,26 +229,14 @@ public final class ComputerRenderer implements BlockEntityRenderer<ComputerBlock
     }
 
     private static void renderQuad(final Matrix4f matrix, final VertexConsumer consumer) {
-        final VertexConsumer wrapper = new ChainableVertexConsumer(consumer);
-        wrapper.vertex(matrix, 0, 0, 0)
-            .uv(0, 0)
-            .endVertex();
-
-        wrapper.vertex(matrix, 0, 16, 0)
-            .uv(0, 1)
-            .endVertex();
-
-        wrapper.vertex(matrix, 16, 16, 0)
-            .uv(1, 1)
-            .endVertex();
-
-        wrapper.vertex(matrix, 16, 0, 0)
-            .uv(1, 0)
-            .endVertex();
+        consumer.addVertex(matrix, 0, 0, 0).setUv(0, 0);
+        consumer.addVertex(matrix, 0, 16, 0).setUv(0, 1);
+        consumer.addVertex(matrix, 16, 16, 0).setUv(1, 1);
+        consumer.addVertex(matrix, 16, 0, 0).setUv(1, 0);
     }
 
     @SubscribeEvent
-    public static void updateCache(final TickEvent.ClientTickEvent event) {
+    public static void updateCache(final ClientTickEvent.Post event) {
         rendererViews.cleanUp();
     }
 

@@ -10,7 +10,6 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nullable;
@@ -24,14 +23,13 @@ public final class HardDriveWithExternalDataItem extends AbstractBlockDeviceItem
 
     public HardDriveWithExternalDataItem(final ResourceLocation defaultData, final DyeColor defaultColor) {
         super(defaultData);
-        this.defaultColor = ColorUtils.textureDiffuseColorsToRGB(defaultColor.getTextureDiffuseColors());
+        this.defaultColor = defaultColor.getTextureDiffuseColor();
     }
 
     ///////////////////////////////////////////////////////////////////
 
-    @Override
     public void fillItemCategory(final CreativeModeTab tab, final NonNullList<ItemStack> items) {
-        super.fillItemCategory(tab, items);
+        items.add(new ItemStack(this));
 
         BlockDeviceDataRegistry.values().forEach(data -> {
             if (!Objects.equals(BlockDeviceDataRegistry.getKey(data), getDefaultData())) {
@@ -53,7 +51,7 @@ public final class HardDriveWithExternalDataItem extends AbstractBlockDeviceItem
     @Override
     protected String getOrCreateDescriptionId() {
         if (descriptionId == null) {
-            descriptionId = Util.makeDescriptionId("item", new ResourceLocation(API.MOD_ID, "hard_drive"));
+            descriptionId = Util.makeDescriptionId("item", ResourceLocation.fromNamespaceAndPath(API.MOD_ID, "hard_drive"));
         }
         return descriptionId;
     }

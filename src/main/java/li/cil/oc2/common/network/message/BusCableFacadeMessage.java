@@ -4,10 +4,11 @@ package li.cil.oc2.common.network.message;
 
 import li.cil.oc2.common.blockentity.BusCableBlockEntity;
 import li.cil.oc2.common.network.MessageUtils;
+import li.cil.oc2.common.util.ItemStackUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public final class BusCableFacadeMessage extends AbstractMessage {
     private BlockPos pos;
@@ -29,13 +30,13 @@ public final class BusCableFacadeMessage extends AbstractMessage {
     @Override
     public void fromBytes(final FriendlyByteBuf buffer) {
         pos = buffer.readBlockPos();
-        stack = buffer.readItem();
+        stack = ItemStackUtils.parse(ItemStackUtils.getDefaultRegistries(), buffer.readNbt());
     }
 
     @Override
     public void toBytes(final FriendlyByteBuf buffer) {
         buffer.writeBlockPos(pos);
-        buffer.writeItem(stack);
+        buffer.writeNbt(ItemStackUtils.save(stack, ItemStackUtils.getDefaultRegistries()));
     }
 
     ///////////////////////////////////////////////////////////////////

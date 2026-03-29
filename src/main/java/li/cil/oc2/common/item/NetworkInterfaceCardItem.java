@@ -14,11 +14,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -84,8 +85,8 @@ public final class NetworkInterfaceCardItem extends ModItem {
 
 
     @Override
-    public void appendHoverText(final ItemStack stack, @Nullable final Level level, final List<Component> tooltip, final TooltipFlag flag) {
-        super.appendHoverText(stack, level, tooltip, flag);
+    public void appendHoverText(final ItemStack stack, final Item.TooltipContext context, final List<Component> tooltip, final TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
         if (NetworkInterfaceCardItem.hasConfiguration(stack)) {
             tooltip.add(IS_CONFIGURED_TEXT);
         }
@@ -95,13 +96,13 @@ public final class NetworkInterfaceCardItem extends ModItem {
     public InteractionResultHolder<ItemStack> use(final Level level, final Player player, final InteractionHand hand) {
         final ItemStack itemStack = player.getItemInHand(hand);
 
-        if (player.getLevel().isClientSide()) {
+        if (level.isClientSide()) {
             if (itemStack.is(Items.NETWORK_INTERFACE_CARD.get())) {
                 openConfigurationScreen(player, hand);
             }
         }
 
-        return InteractionResultHolder.sidedSuccess(itemStack, player.getLevel().isClientSide());
+        return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide());
     }
 
     ///////////////////////////////////////////////////////////////////

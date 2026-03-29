@@ -6,7 +6,7 @@ import li.cil.oc2.api.API;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.bus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.IForgeRegistryEntry;
@@ -25,9 +25,10 @@ public abstract class RegistryUtils {
     }
 
     private static final List<DeferredRegister<?>> ENTRIES = new ArrayList<>();
+    private static IEventBus eventBus;
     private static Phase phase = Phase.PRE_INIT;
 
-    public static <T extends IForgeRegistryEntry<T>> DeferredRegister<T> getInitializerFor(final ResourceKey<Registry<T>> key) {
+    public static <T> DeferredRegister<T> getInitializerFor(final ResourceKey<? extends Registry<T>> key) {
         if (phase != Phase.INIT) throw new IllegalStateException();
 
         final DeferredRegister<T> entry = DeferredRegister.create(key, API.MOD_ID);
@@ -35,7 +36,7 @@ public abstract class RegistryUtils {
         return entry;
     }
 
-    public static <T extends IForgeRegistryEntry<T>> DeferredRegister<T> getInitializerFor(final IForgeRegistry<T> registry) {
+    public static <T> DeferredRegister<T> getInitializerFor(final IForgeRegistry<T> registry) {
         if (phase != Phase.INIT) throw new IllegalStateException();
 
         final DeferredRegister<T> entry = DeferredRegister.create(registry, API.MOD_ID);
@@ -43,8 +44,9 @@ public abstract class RegistryUtils {
         return entry;
     }
 
-    public static void begin() {
+    public static void begin(final IEventBus modEventBus) {
         if (phase != Phase.PRE_INIT) throw new IllegalStateException();
+        eventBus = modEventBus;
         phase = Phase.INIT;
     }
 
@@ -53,7 +55,7 @@ public abstract class RegistryUtils {
         phase = Phase.POST_INIT;
 
         for (final DeferredRegister<?> register : ENTRIES) {
-            register.register(FMLJavaModLoadingContext.get().getModEventBus());
+            register.register(Objects.requireNonNull(eventBus));
         }
 
         ENTRIES.clear();

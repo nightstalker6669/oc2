@@ -30,7 +30,7 @@ import static li.cil.oc2.common.Constants.ITEMS_TAG_NAME;
 public class ExtraItemsJEIPlugin implements IModPlugin {
     @Override
     public ResourceLocation getPluginUid() {
-        return new ResourceLocation(API.MOD_ID, "extra_items");
+        return ResourceLocation.fromNamespaceAndPath(API.MOD_ID, "extra_items");
     }
 
     @Override
@@ -44,7 +44,7 @@ public class ExtraItemsJEIPlugin implements IModPlugin {
     private static final class ComputerSubtypeInterpreter implements IIngredientSubtypeInterpreter<ItemStack> {
         @Override
         public String apply(final ItemStack ingredient, final UidContext context) {
-            final CompoundTag itemsTag = NBTUtils.getChildTag(ingredient.getTag(), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME);
+            final CompoundTag itemsTag = NBTUtils.getChildTag(ItemStackUtils.getModDataTag(ingredient), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME);
             return itemsTag.isEmpty() ? NONE : stableTagToString(itemsTag);
         }
     }
@@ -52,7 +52,7 @@ public class ExtraItemsJEIPlugin implements IModPlugin {
     private static final class RobotSubtypeInterpreter implements IIngredientSubtypeInterpreter<ItemStack> {
         @Override
         public String apply(final ItemStack ingredient, final UidContext context) {
-            final CompoundTag itemsTag = NBTUtils.getChildTag(ingredient.getTag(), API.MOD_ID, ITEMS_TAG_NAME);
+            final CompoundTag itemsTag = NBTUtils.getChildTag(ItemStackUtils.getModDataTag(ingredient), API.MOD_ID, ITEMS_TAG_NAME);
             return itemsTag.isEmpty() ? NONE : stableTagToString(itemsTag);
         }
     }

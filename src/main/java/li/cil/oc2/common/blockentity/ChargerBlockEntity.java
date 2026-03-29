@@ -18,9 +18,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.energy.IEnergyStorage;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.items.IItemHandler;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -77,14 +76,14 @@ public final class ChargerBlockEntity extends ModBlockEntity implements NamedDev
     protected void saveAdditional(final CompoundTag tag) {
         super.saveAdditional(tag);
 
-        tag.put(Constants.ENERGY_TAG_NAME, energy.serializeNBT());
+        tag.put(Constants.ENERGY_TAG_NAME, energy.serializeNBT(getRegistries()));
     }
 
     @Override
     public void load(final CompoundTag tag) {
         super.load(tag);
 
-        energy.deserializeNBT(tag.getCompound(Constants.ENERGY_TAG_NAME));
+        energy.deserializeNBT(getRegistries(), tag.getCompound(Constants.ENERGY_TAG_NAME));
     }
 
     @Callback
@@ -115,7 +114,7 @@ public final class ChargerBlockEntity extends ModBlockEntity implements NamedDev
 
         final BlockEntity blockEntity = level.getBlockEntity(getBlockPos().above());
         if (blockEntity != null) {
-            chargeCapabilityProvider(blockEntity);
+            chargeBlockCapabilities(blockEntity.getBlockPos());
         }
     }
 
@@ -128,20 +127,44 @@ public final class ChargerBlockEntity extends ModBlockEntity implements NamedDev
 
         final List<Entity> entities = level.getEntities((Entity) null, new AABB(getBlockPos().above()), ENTITY_PREDICATE);
         for (final Entity entity : entities) {
-            chargeCapabilityProvider(entity);
+            chargeEntityCapabilities(entity);
         }
     }
 
-    private void chargeCapabilityProvider(final ICapabilityProvider capabilityProvider) {
-        capabilityProvider.getCapability(Capabilities.energyStorage(), Direction.DOWN).ifPresent(this::charge);
-        capabilityProvider.getCapability(Capabilities.itemHandler(), Direction.DOWN).ifPresent(this::chargeItems);
+    private void chargeBlockCapabilities(final BlockPos pos) {
+        assert level != null;
+
+        final IEnergyStorage energyStorage = level.getCapability(net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK, pos, Direction.DOWN);
+        if (energyStorage != null) {
+            charge(energyStorage);
+        }
+
+        final IItemHandler itemHandler = level.getCapability(net.neoforged.neoforge.capabilities.Capabilities.ItemHandler.BLOCK, pos, Direction.DOWN);
+        if (itemHandler != null) {
+            chargeItems(itemHandler);
+        }
+    }
+
+    private void chargeEntityCapabilities(final Entity entity) {
+        final IEnergyStorage energyStorage = entity.getCapability(net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.ENTITY, Direction.DOWN);
+        if (energyStorage != null) {
+            charge(energyStorage);
+        }
+
+        final IItemHandler itemHandler = entity.getCapability(net.neoforged.neoforge.capabilities.Capabilities.ItemHandler.ENTITY, null);
+        if (itemHandler != null) {
+            chargeItems(itemHandler);
+        }
     }
 
     private void chargeItems(final IItemHandler itemHandler) {
         for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
             final ItemStack stack = itemHandler.getStackInSlot(slot);
             if (!stack.isEmpty()) {
-                stack.getCapability(Capabilities.energyStorage()).ifPresent(this::charge);
+                final IEnergyStorage energyStorage = stack.getCapability(net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.ITEM, null);
+                if (energyStorage != null) {
+                    charge(energyStorage);
+                }
             }
         }
     }
@@ -156,7 +179,6 @@ public final class ChargerBlockEntity extends ModBlockEntity implements NamedDev
         }
     }
 
-    @Override
     public AABB getRenderBoundingBox() {
         return renderBoundingBox;
     }

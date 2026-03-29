@@ -2,6 +2,7 @@
 
 package li.cil.oc2.common.block;
 
+import com.mojang.serialization.MapCodec;
 import li.cil.oc2.common.Config;
 import li.cil.oc2.common.blockentity.BlockEntities;
 import li.cil.oc2.common.blockentity.TickableBlockEntity;
@@ -22,7 +23,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -30,6 +30,8 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import javax.annotation.Nullable;
 
 public final class ProjectorBlock extends HorizontalDirectionalBlock implements EntityBlock, EnergyConsumingBlock {
+    public static final MapCodec<ProjectorBlock> CODEC = simpleCodec(ProjectorBlock::new);
+
     public static final BooleanProperty LIT = BlockStateProperties.LIT;
 
     // We bake the visual indents on the front and sides into the collision shape, to prevent stuff being
@@ -44,11 +46,15 @@ public final class ProjectorBlock extends HorizontalDirectionalBlock implements 
     private static final VoxelShape POS_X_SHAPE = VoxelShapeUtils.rotateHorizontalClockwise(POS_Z_SHAPE);
 
     public ProjectorBlock() {
-        super(Properties
-            .of(Material.METAL)
+        this(Properties
+            .of()
             .sound(SoundType.METAL)
             .lightLevel(state -> state.getValue(LIT) ? 8 : 0)
             .strength(1.5f, 6.0f));
+    }
+
+    public ProjectorBlock(final Properties properties) {
+        super(properties);
         registerDefaultState(getStateDefinition().any()
             .setValue(FACING, Direction.NORTH)
             .setValue(LIT, false));
@@ -93,6 +99,11 @@ public final class ProjectorBlock extends HorizontalDirectionalBlock implements 
     }
 
     ///////////////////////////////////////////////////////////////////
+
+    @Override
+    protected MapCodec<? extends HorizontalDirectionalBlock> codec() {
+        return CODEC;
+    }
 
     protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING, LIT);

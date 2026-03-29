@@ -2,6 +2,7 @@
 
 package li.cil.oc2.common.block;
 
+import com.mojang.serialization.MapCodec;
 import li.cil.oc2.common.blockentity.BlockEntities;
 import li.cil.oc2.common.blockentity.NetworkHubBlockEntity;
 import net.minecraft.core.BlockPos;
@@ -15,16 +16,21 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.material.Material;
 
 import javax.annotation.Nullable;
 
 public final class NetworkHubBlock extends HorizontalDirectionalBlock implements EntityBlock {
+    public static final MapCodec<NetworkHubBlock> CODEC = simpleCodec(NetworkHubBlock::new);
+
     public NetworkHubBlock() {
-        super(Properties
-            .of(Material.METAL)
+        this(Properties
+            .of()
             .sound(SoundType.METAL)
             .strength(1.5f, 6.0f));
+    }
+
+    public NetworkHubBlock(final Properties properties) {
+        super(properties);
         registerDefaultState(getStateDefinition().any().setValue(FACING, Direction.NORTH));
     }
 
@@ -54,6 +60,11 @@ public final class NetworkHubBlock extends HorizontalDirectionalBlock implements
     }
 
     ///////////////////////////////////////////////////////////////////
+
+    @Override
+    protected MapCodec<? extends HorizontalDirectionalBlock> codec() {
+        return CODEC;
+    }
 
     @Override
     protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {

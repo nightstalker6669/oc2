@@ -21,8 +21,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -85,7 +85,7 @@ public final class DiskDriveBlockEntity extends ModBlockEntity implements DiskDr
             ItemStackUtils.spawnAsEntity(level, getBlockPos().relative(facing), stack, facing).ifPresent(entity -> {
                 if (player != null) {
                     entity.setNoPickUpDelay();
-                    entity.setOwner(player.getUUID());
+                    entity.setTarget(player.getUUID());
                 }
             });
         }
@@ -112,28 +112,28 @@ public final class DiskDriveBlockEntity extends ModBlockEntity implements DiskDr
     @Override
     public CompoundTag getUpdateTag() {
         final CompoundTag tag = super.getUpdateTag();
-        tag.put(Constants.ITEMS_TAG_NAME, itemHandler.serializeNBT());
+        tag.put(Constants.ITEMS_TAG_NAME, itemHandler.serializeNBT(getRegistries()));
         return tag;
     }
 
     @Override
     public void handleUpdateTag(final CompoundTag tag) {
         super.handleUpdateTag(tag);
-        itemHandler.deserializeNBT(tag.getCompound(Constants.ITEMS_TAG_NAME));
+        itemHandler.deserializeNBT(getRegistries(), tag.getCompound(Constants.ITEMS_TAG_NAME));
     }
 
     @Override
     protected void saveAdditional(final CompoundTag tag) {
         super.saveAdditional(tag);
 
-        tag.put(Constants.ITEMS_TAG_NAME, itemHandler.serializeNBT());
+        tag.put(Constants.ITEMS_TAG_NAME, itemHandler.serializeNBT(getRegistries()));
     }
 
     @Override
     public void load(final CompoundTag tag) {
         super.load(tag);
 
-        itemHandler.deserializeNBT(tag.getCompound(Constants.ITEMS_TAG_NAME));
+        itemHandler.deserializeNBT(getRegistries(), tag.getCompound(Constants.ITEMS_TAG_NAME));
     }
 
     @Override
@@ -181,9 +181,9 @@ public final class DiskDriveBlockEntity extends ModBlockEntity implements DiskDr
         }
 
         @Override
-        public CompoundTag serializeNBT() {
+        public CompoundTag serializeNBT(final net.minecraft.core.HolderLookup.Provider provider) {
             exportDeviceDataToItemStack(getStackInSlotRaw(0));
-            return super.serializeNBT();
+            return super.serializeNBT(provider);
         }
 
         @Override

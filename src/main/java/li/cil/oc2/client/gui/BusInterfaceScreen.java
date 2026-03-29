@@ -3,17 +3,17 @@
 package li.cil.oc2.client.gui;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import li.cil.oc2.client.gui.widget.ImageButton;
 import li.cil.oc2.common.Constants;
 import li.cil.oc2.common.blockentity.BusCableBlockEntity;
 import li.cil.oc2.common.item.Items;
 import li.cil.oc2.common.network.Network;
 import li.cil.oc2.common.network.message.BusInterfaceNameMessage;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.Direction;
-import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 import org.lwjgl.glfw.GLFW;
 
@@ -48,8 +48,6 @@ public final class BusInterfaceScreen extends Screen {
     protected void init() {
         super.init();
 
-        getMinecraft().keyboardHandler.setSendRepeatsToGui(true);
-
         left = (width - Sprites.BUS_INTERFACE_SCREEN.width) / 2;
         top = (height - Sprites.BUS_INTERFACE_SCREEN.height) / 2;
 
@@ -74,7 +72,7 @@ public final class BusInterfaceScreen extends Screen {
                 setInterfaceName(nameField.getValue());
                 onClose();
             }
-        }).withTooltip(new TranslatableComponent(Constants.TOOLTIP_CONFIRM));
+        }).withTooltip(Component.translatable(Constants.TOOLTIP_CONFIRM));
 
         addRenderableWidget(new ImageButton(
             left + CANCEL_LEFT, top + CANCEL_TOP,
@@ -87,20 +85,17 @@ public final class BusInterfaceScreen extends Screen {
                 super.onPress();
                 onClose();
             }
-        }).withTooltip(new TranslatableComponent(Constants.TOOLTIP_CANCEL));
+        }).withTooltip(Component.translatable(Constants.TOOLTIP_CANCEL));
     }
 
     @Override
     public void onClose() {
         super.onClose();
-
-        getMinecraft().keyboardHandler.setSendRepeatsToGui(false);
     }
 
     @Override
     public void tick() {
         super.tick();
-        nameField.tick();
 
         final Vec3 busCableCenter = Vec3.atCenterOf(busCable.getBlockPos());
         if (!busCable.isValid() ||
@@ -123,14 +118,14 @@ public final class BusInterfaceScreen extends Screen {
     }
 
     @Override
-    public void render(final PoseStack stack, final int mouseX, final int mouseY, final float partialTicks) {
-        renderBackground(stack);
-        Sprites.BUS_INTERFACE_SCREEN.draw(stack, left, top);
+    public void render(final GuiGraphics graphics, final int mouseX, final int mouseY, final float partialTicks) {
+        renderBackground(graphics, mouseX, mouseY, partialTicks);
+        Sprites.BUS_INTERFACE_SCREEN.draw(graphics, left, top);
 
-        super.render(stack, mouseX, mouseY, partialTicks);
+        super.render(graphics, mouseX, mouseY, partialTicks);
 
         RenderSystem.disableBlend();
-        nameField.render(stack, mouseX, mouseY, partialTicks);
+        nameField.render(graphics, mouseX, mouseY, partialTicks);
     }
 
     @Override

@@ -4,6 +4,7 @@ package li.cil.oc2.common.bus.device.vm.item;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import li.cil.oc2.api.API;
 import li.cil.oc2.api.bus.device.vm.VMDeviceLoadResult;
 import li.cil.oc2.api.bus.device.vm.context.VMContext;
 import li.cil.oc2.api.capabilities.NetworkInterface;
@@ -13,10 +14,10 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,7 +55,7 @@ public final class NetworkTunnelDevice extends AbstractNetworkInterfaceDevice {
 
     ///////////////////////////////////////////////////////////////
 
-    @Mod.EventBusSubscriber
+    @EventBusSubscriber(modid = API.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
     private static final class TunnelManager {
         private static final int BYTES_PER_TICK = 32 * 1024 / TickUtils.toTicks(Duration.ofSeconds(1)); // bytes / sec -> bytes / tick
         private static final int MIN_ETHERNET_FRAME_SIZE = 42;
@@ -73,10 +74,8 @@ public final class NetworkTunnelDevice extends AbstractNetworkInterfaceDevice {
         }
 
         @SubscribeEvent
-        public static void handleServerTick(final TickEvent.ServerTickEvent event) {
-            if (event.phase == TickEvent.Phase.START) {
-                pumpMessages();
-            }
+        public static void handleServerTick(final ServerTickEvent.Pre event) {
+            pumpMessages();
         }
 
         @SubscribeEvent

@@ -4,7 +4,6 @@ package li.cil.oc2.client.renderer.blockentity;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Matrix4f;
 import li.cil.oc2.api.API;
 import li.cil.oc2.client.renderer.ModRenderType;
 import li.cil.oc2.common.blockentity.ChargerBlockEntity;
@@ -16,9 +15,10 @@ import net.minecraft.client.resources.model.Material;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.inventory.InventoryMenu;
+import org.joml.Matrix4f;
 
 public final class ChargerRenderer implements BlockEntityRenderer<ChargerBlockEntity> {
-    public static final ResourceLocation EFFECT_LOCATION = new ResourceLocation(API.MOD_ID, "block/charger/effect");
+    public static final ResourceLocation EFFECT_LOCATION = ResourceLocation.fromNamespaceAndPath(API.MOD_ID, "block/charger/effect");
 
     private static final Material TEXTURE_EFFECT = new Material(InventoryMenu.BLOCK_ATLAS, EFFECT_LOCATION);
 
@@ -71,20 +71,16 @@ public final class ChargerRenderer implements BlockEntityRenderer<ChargerBlockEn
 
     private static void renderQuad(final Matrix4f matrix, final VertexConsumer consumer) {
         final VertexConsumer wrapper = new ChainableVertexConsumer(consumer);
-        wrapper.vertex(matrix, -0.5f, 0, -0.5f)
-            .uv(0, 0)
-            .endVertex();
+        wrapper.addVertex(matrix, -0.5f, 0, -0.5f)
+            .setUv(0, 0);
 
-        wrapper.vertex(matrix, -0.5f, 0, 0.5f)
-            .uv(0, 1)
-            .endVertex();
+        wrapper.addVertex(matrix, -0.5f, 0, 0.5f)
+            .setUv(0, 1);
 
-        wrapper.vertex(matrix, 0.5f, 0, 0.5f)
-            .uv(1, 1)
-            .endVertex();
+        wrapper.addVertex(matrix, 0.5f, 0, 0.5f)
+            .setUv(1, 1);
 
-        wrapper.vertex(matrix, 0.5f, 0, -0.5f)
-            .uv(1, 0)
-            .endVertex();
+        wrapper.addVertex(matrix, 0.5f, 0, -0.5f)
+            .setUv(1, 0);
     }
 }

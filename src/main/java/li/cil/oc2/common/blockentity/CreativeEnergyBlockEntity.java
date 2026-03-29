@@ -30,7 +30,7 @@ public final class CreativeEnergyBlockEntity extends ModBlockEntity implements T
             if (level.hasChunk(neighborChunkPos.x, neighborChunkPos.z)) {
                 final BlockEntity blockEntity = level.getBlockEntity(neighborPos);
                 if (blockEntity != null) {
-                    blockEntity.getCapability(Capabilities.energyStorage(), side.getOpposite()).ifPresent(energy ->
+                    Capabilities.getCapability(blockEntity, Capabilities.energyStorage(), side.getOpposite()).ifPresent(energy ->
                         energy.receiveEnergy(Integer.MAX_VALUE, false));
                 }
             }

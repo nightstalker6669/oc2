@@ -7,7 +7,6 @@ import li.cil.oc2.common.util.ColorUtils;
 import net.minecraft.Util;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nullable;
@@ -20,7 +19,7 @@ public final class HardDriveItem extends AbstractStorageItem implements DyeableL
 
     public HardDriveItem(final int capacity, final DyeColor defaultColor) {
         super(capacity);
-        this.defaultColor = ColorUtils.textureDiffuseColorsToRGB(defaultColor.getTextureDiffuseColors());
+        this.defaultColor = defaultColor.getTextureDiffuseColor();
     }
 
     ///////////////////////////////////////////////////////////////////
@@ -35,7 +34,7 @@ public final class HardDriveItem extends AbstractStorageItem implements DyeableL
     @Override
     protected String getOrCreateDescriptionId() {
         if (descriptionId == null) {
-            descriptionId = Util.makeDescriptionId("item", new ResourceLocation(API.MOD_ID, "hard_drive"));
+            descriptionId = Util.makeDescriptionId("item", ResourceLocation.fromNamespaceAndPath(API.MOD_ID, "hard_drive"));
         }
         return descriptionId;
     }

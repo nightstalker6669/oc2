@@ -17,6 +17,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkHooks;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.UUID;
 
@@ -86,7 +87,7 @@ public final class NetworkTunnelContainer extends AbstractContainer {
     public void removed(final Player player) {
         super.removed(player);
 
-        if (!player.getLevel().isClientSide()) {
+        if (!player.level().isClientSide()) {
             clearContainer(player, linkSlot);
         }
     }

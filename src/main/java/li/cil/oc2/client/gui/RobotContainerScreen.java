@@ -5,11 +5,12 @@ package li.cil.oc2.client.gui;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import li.cil.oc2.common.container.RobotInventoryContainer;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 @OnlyIn(Dist.CLIENT)
 public final class RobotContainerScreen extends AbstractMachineInventoryScreen<RobotInventoryContainer> {
@@ -39,10 +40,10 @@ public final class RobotContainerScreen extends AbstractMachineInventoryScreen<R
     ///////////////////////////////////////////////////////////////////
 
     @Override
-    protected void renderBg(final PoseStack stack, final float partialTicks, final int mouseX, final int mouseY) {
-        super.renderBg(stack, partialTicks, mouseX, mouseY);
+    protected void renderBg(final GuiGraphics graphics, final float partialTicks, final int mouseX, final int mouseY) {
+        super.renderBg(graphics, partialTicks, mouseX, mouseY);
 
-        Sprites.ROBOT_CONTAINER.draw(stack, leftPos, topPos);
-        renderSelection(stack, menu.getRobot().getSelectedSlot(), leftPos + 115, topPos + 23, 3);
+        Sprites.ROBOT_CONTAINER.draw(graphics, leftPos, topPos);
+        renderSelection(graphics.pose(), menu.getRobot().getSelectedSlot(), leftPos + 115, topPos + 23, 3);
     }
 }

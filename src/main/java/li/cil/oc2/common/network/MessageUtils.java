@@ -2,6 +2,7 @@
 
 package li.cil.oc2.common.network;
 
+import li.cil.oc2.common.network.message.NetworkEvent;
 import li.cil.oc2.common.util.LevelUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -10,7 +11,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -32,7 +32,7 @@ public final class MessageUtils {
             return;
         }
 
-        final ServerLevel level = player.getLevel();
+        final ServerLevel level = player.serverLevel();
         final BlockEntity blockEntity = LevelUtils.getBlockEntityIfChunkExists(level, pos);
         if (type.isInstance(blockEntity)) {
             callback.accept(player, (T) blockEntity);
@@ -46,7 +46,7 @@ public final class MessageUtils {
             return;
         }
 
-        final ServerLevel level = player.getLevel();
+        final ServerLevel level = player.serverLevel();
         final Entity entity = level.getEntity(id);
         if (type.isInstance(entity)) {
             callback.accept((T) entity);
@@ -60,7 +60,7 @@ public final class MessageUtils {
             return;
         }
 
-        final ServerLevel level = player.getLevel();
+        final ServerLevel level = player.serverLevel();
         final Entity entity = level.getEntity(id);
         if (type.isInstance(entity) && entity.closerThan(player, 8)) {
             callback.accept((T) entity);

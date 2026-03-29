@@ -1,17 +1,10 @@
-buildscript {
-    dependencies {
-        classpath group: 'org.spongepowered', name: 'mixingradle', version: '0.7.+'
-    }
-}
+import java.nio.charset.StandardCharsets
+
 plugins {
     id "idea"
     id "maven-publish"
-    id "net.minecraftforge.gradle" version "5.1.+"
-    id "com.matthewprenger.cursegradle" version "1.4.0"
+    id "net.neoforged.gradle.userdev" version "7.1.21"
 }
-
-apply plugin: 'org.spongepowered.mixin'
-apply from: "minecraft.gradle"
 
 def getGitRef() {
     try {
@@ -27,26 +20,57 @@ def getGitRef() {
 }
 
 version = "${semver}+${getGitRef()}"
-group = "li.cil.oc2"
+group = mod_group_id
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+base {
+    archivesName = project.name
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+tasks.named("wrapper", Wrapper).configure {
+    distributionType = Wrapper.DistributionType.BIN
+}
+
+sourceSets.main.resources.setSrcDirs([
+    "src/generated/resources",
+    "src/main/resources"
+])
+
+sourceSets.main.resources {
+    exclude("**/.cache/**")
+    exclude("**/*.bbmodel")
+}
 
 tasks.withType(JavaCompile).configureEach {
-    options.encoding = "utf-8"
+    options.encoding = StandardCharsets.UTF_8.name()
 }
 
 final def hasGithubPackageCredentials =
     (project.hasProperty("gpr.user") && project.hasProperty("gpr.key")) ||
         (System.getenv("GITHUB_ACTOR") && System.getenv("GITHUB_TOKEN"))
+final def hasLocalSednaMc = file("../sedna-mc").exists()
+
+configurations {
+    modRuntime
+    runtimeClasspath.extendsFrom(modRuntime)
+}
 
 repositories {
     mavenCentral()
+    maven {
+        url = "https://maven.neoforged.net/releases"
+    }
+    maven {
+        url = "https://maven.architectury.dev"
+        content { includeGroup "dev.architectury" }
+    }
     maven {
         url 'https://cursemaven.com'
         content { includeGroup 'curse.maven' }
     }
     maven {
-        url 'https://dvs1.progwml6.com/files/maven/'
+        url 'https://maven.blamejared.com'
         content { includeGroup 'mezz.jei' }
     }
     if (hasGithubPackageCredentials) {
@@ -69,28 +93,34 @@ repositories {
 }
 
 dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-    annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
+    implementation "net.neoforged:neoforge:${neo_version}"
+    // Local development uses the base libraries directly. Runtime testing still expects a
+    // NeoForge Sedna mod to be supplied via an included build or external runtime setup.
+    compileOnly "li.cil.ceres:ceres:0.0.4"
+    compileOnly "li.cil.sedna:sedna:2.0.8"
+    compileOnly "li.cil.sedna:sedna-buildroot:0.0.8"
+    runs("li.cil.ceres:ceres:0.0.4") { transitive = false }
+    runs("li.cil.sedna:sedna:2.0.8") { transitive = false }
+    runs("li.cil.sedna:sedna-buildroot:0.0.8") { transitive = false }
+    testImplementation "li.cil.ceres:ceres:0.0.4"
+    testImplementation "li.cil.sedna:sedna:2.0.8"
+    testImplementation "li.cil.sedna:sedna-buildroot:0.0.8"
 
-    // Specify the libs embedded in the library mod explicitly for local development, where
-    // we can include these directly (and will have a local library mod using the local
-    // versions). Can't get these to get properly resolved in the IDE otherwise (doesn't
-    // pick them up via the library mod due to the embed configuration).
-    if (hasGithubPackageCredentials) {
-        compileOnly "li.cil.ceres:ceres:0.0.4"
-        compileOnly "li.cil.sedna:sedna:2.0.8"
-        compileOnly "li.cil.sedna:sedna-buildroot:0.0.8"
+    compileOnly "curse.maven:markdown-manual-reimagined-${markdown_manual_project_id}:${markdown_manual_file_id}"
+    if (hasLocalSednaMc) {
+        // The runtime Sedna mod stays separate from the core Sedna library and is
+        // supplied by the sibling sedna-mc build via settings.gradle substitution.
+        modRuntime "curse.maven:sedna-${sedna_project_id}:0.0.0-local"
     }
-    implementation "curse.maven:sedna-511276:3885542"
 
-    implementation fg.deobf("curse.maven:markdownmanual-502485:3738124")
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+    runs "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 
-    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}:9.7.0.180:api")
-    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}:9.7.0.180")
-
-    testImplementation "org.mockito:mockito-inline:4.3.1"
+    testImplementation "org.mockito:mockito-core:5.2.0"
+    testImplementation "net.bytebuddy:byte-buddy:1.18.7"
     testImplementation "org.junit.jupiter:junit-jupiter-api:5.8.2"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.8.2"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.8.2"
 }
 
 task packageScripts(type: Zip) {
@@ -108,62 +138,61 @@ task copyLicensesToResources(type: Copy) {
 processResources.dependsOn(packageScripts)
 processResources.dependsOn(copyLicensesToResources)
 
-minecraft {
-    mappings channel: "official", version: minecraft_version
+runs {
+    configureEach {
+        workingDirectory project.file("run")
+        systemProperty "forge.logging.markers", "REGISTRIES"
+        systemProperty "forge.logging.console.level", "info"
+        modSource project.sourceSets.main
+    }
 
-    accessTransformer = file("src/main/resources/META-INF/accesstransformer.cfg")
+    client {
+        systemProperty "neoforge.enabledGameTestNamespaces", mod_id
+    }
 
-    runs {
-        all {
-            property "forge.logging.markers", "REGISTRIES"
-            property "forge.logging.console.level", "info"
+    server {
+        systemProperty "neoforge.enabledGameTestNamespaces", mod_id
+        argument "--nogui"
+    }
 
-            mods {
-                oc2 {
-                    source sourceSets.main
-                }
-            }
-        }
+    gameTestServer {
+        systemProperty "neoforge.enabledGameTestNamespaces", mod_id
+    }
 
-        client {
-            workingDirectory project.file("run")
-            property "forge.enabledGameTestNamespaces", "oc2"
-        }
-
-        server {
-            workingDirectory project.file("run")
-            property "forge.enabledGameTestNamespaces", "oc2"
-            arg "--nogui"
-        }
-
-        gameTestServer {
-            workingDirectory project.file('run')
-            property "forge.enabledGameTestNamespaces", "oc2"
-        }
-
-        data {
-            workingDirectory project.file("run")
-            args "--mod", "oc2", "--all", "--output", file("src/generated/resources/"), "--existing", file("src/main/resources")
-        }
+    data {
+        arguments.addAll "--mod", mod_id, "--all",
+            "--output", file("src/generated/resources/").getAbsolutePath(),
+            "--existing", file("src/main/resources/").getAbsolutePath()
     }
 }
 
-mixin {
-    add sourceSets.main, "mixins.oc2.refmap.json"
-    config "mixins.oc2.json"
+tasks.withType(ProcessResources).configureEach {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-//    quiet
-}
+    final def replaceProperties = [
+        minecraft_version              : minecraft_version,
+        minecraft_version_range        : minecraft_version_range,
+        neo_version                    : neo_version,
+        neo_version_range              : neo_version_range,
+        loader_version_range           : loader_version_range,
+        mod_id                         : mod_id,
+        mod_name                       : mod_name,
+        mod_license                    : mod_license,
+        mod_version                    : semver,
+        jar_version                    : project.version,
+        mod_authors                    : mod_authors,
+        mod_description                : mod_description,
+        sedna_version_range            : sedna_version_range,
+        markdown_manual_version_range  : markdown_manual_version_range,
+    ]
+    inputs.properties(replaceProperties)
 
-task copyGeneratedResources(type: Copy) {
-    from "src/generated"
-    into "src/main"
-    exclude "resources/.cache"
+    filesMatching(["META-INF/neoforge.mods.toml"]) {
+        expand(replaceProperties)
+    }
 }
 
 jar {
-    finalizedBy "reobfJar"
-
     manifest {
         attributes([
             "FMLAT"                   : "accesstransformer.cfg",
@@ -171,7 +200,7 @@ jar {
             "Specification-Vendor"    : "Sangar",
             "Specification-Version"   : "1",
             "Implementation-Title"    : project.name,
-            "Implementation-Version"  : "${semver}",
+            "Implementation-Version"  : "${project.version}",
             "Implementation-Vendor"   : "Sangar",
             "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
             "MixinConfigs"            : "mixins.oc2.json",
@@ -208,23 +237,6 @@ publishing {
                 username = System.getenv("GITHUB_ACTOR")
                 password = System.getenv("GITHUB_TOKEN")
             }
-        }
-    }
-}
-
-curseforge {
-    apiKey = System.getenv("CURSEFORGE_API_KEY") ?: ""
-    project {
-        id = curse_project_id
-        releaseType = System.getenv('CURSEFORGE_RELEASE_TYPE') ?: "alpha"
-        changelogType = 'markdown'
-        changelog = System.getenv("CHANGELOG") ?: "Changelog not available."
-        addGameVersion "Forge"
-        addGameVersion minecraft_version
-        addGameVersion "Java 17"
-        relations {
-            requiredDependency "markdownmanual"
-            requiredDependency "sedna"
         }
     }
 }

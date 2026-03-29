@@ -41,16 +41,14 @@ public final class FileImportExportCardItemDeviceProvider extends AbstractItemDe
 
     private Optional<TerminalUserProvider> getTerminalUserProvider(final ItemDeviceQuery query) {
         if (query.getContainerBlockEntity().isPresent()) {
-            final LazyOptional<TerminalUserProvider> capability = query.getContainerBlockEntity().get()
-                .getCapability(Capabilities.terminalUserProvider());
+            final LazyOptional<TerminalUserProvider> capability = Capabilities.getCapability(query.getContainerBlockEntity().get(), Capabilities.terminalUserProvider(), null);
             if (capability.isPresent()) {
                 return capability.resolve();
             }
         }
 
         if (query.getContainerEntity().isPresent()) {
-            final LazyOptional<TerminalUserProvider> capability = query.getContainerEntity().get()
-                .getCapability(Capabilities.terminalUserProvider());
+            final LazyOptional<TerminalUserProvider> capability = Capabilities.getCapability(query.getContainerEntity().get(), Capabilities.terminalUserProvider(), null);
             if (capability.isPresent()) {
                 return capability.resolve();
             }

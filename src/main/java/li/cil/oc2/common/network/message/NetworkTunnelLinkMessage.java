@@ -6,7 +6,7 @@ import li.cil.oc2.common.container.NetworkTunnelContainer;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public final class NetworkTunnelLinkMessage extends AbstractMessage {
     private int containerId;

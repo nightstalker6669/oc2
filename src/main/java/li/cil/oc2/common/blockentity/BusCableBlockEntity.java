@@ -130,7 +130,7 @@ public final class BusCableBlockEntity extends ModBlockEntity {
             stack = ItemStack.EMPTY;
         }
 
-        if (ItemStack.isSame(stack, facade)) {
+        if (ItemStack.isSameItemSameComponents(stack, facade)) {
             return;
         }
 
@@ -167,7 +167,15 @@ public final class BusCableBlockEntity extends ModBlockEntity {
 
     public void handleNeighborChanged(final BlockPos pos) {
         final BlockPos toPos = pos.subtract(getBlockPos());
-        final Direction side = Direction.fromNormal(toPos.getX(), toPos.getY(), toPos.getZ());
+        Direction side = null;
+        for (final Direction direction : Direction.values()) {
+            if (direction.getStepX() == toPos.getX() &&
+                direction.getStepY() == toPos.getY() &&
+                direction.getStepZ() == toPos.getZ()) {
+                side = direction;
+                break;
+            }
+        }
         if (side != null) {
             busElement.updateDevicesForNeighbor(side);
         }
@@ -197,7 +205,7 @@ public final class BusCableBlockEntity extends ModBlockEntity {
         final CompoundTag tag = super.getUpdateTag();
 
         tag.put(INTERFACE_NAMES_TAG_NAME, serializeInterfaceNames());
-        tag.put(FACADE_TAG_NAME, facade.serializeNBT());
+        tag.put(FACADE_TAG_NAME, facade.isEmpty() ? new CompoundTag() : ItemStackUtils.save(facade, getRegistries()));
 
         return tag;
     }
@@ -205,7 +213,7 @@ public final class BusCableBlockEntity extends ModBlockEntity {
     @Override
     public void handleUpdateTag(final CompoundTag tag) {
         deserializeInterfaceNames(tag.getList(INTERFACE_NAMES_TAG_NAME, NBTTagIds.TAG_STRING));
-        setFacade(ItemStack.of(tag.getCompound(FACADE_TAG_NAME)));
+        setFacade(ItemStackUtils.parse(getRegistries(), tag.getCompound(FACADE_TAG_NAME)));
     }
 
     @Override
@@ -214,7 +222,7 @@ public final class BusCableBlockEntity extends ModBlockEntity {
 
         tag.put(BUS_ELEMENT_TAG_NAME, busElement.save());
         tag.put(INTERFACE_NAMES_TAG_NAME, serializeInterfaceNames());
-        tag.put(FACADE_TAG_NAME, facade.serializeNBT());
+        tag.put(FACADE_TAG_NAME, facade.isEmpty() ? new CompoundTag() : ItemStackUtils.save(facade, getRegistries()));
     }
 
     @Override
@@ -222,7 +230,7 @@ public final class BusCableBlockEntity extends ModBlockEntity {
         super.load(tag);
         busElement.load(tag.getCompound(BUS_ELEMENT_TAG_NAME));
         deserializeInterfaceNames(tag.getList(INTERFACE_NAMES_TAG_NAME, NBTTagIds.TAG_STRING));
-        facade = ItemStack.of(tag.getCompound(FACADE_TAG_NAME));
+        facade = ItemStackUtils.parse(getRegistries(), tag.getCompound(FACADE_TAG_NAME));
     }
 
     ///////////////////////////////////////////////////////////////////
@@ -298,8 +306,7 @@ public final class BusCableBlockEntity extends ModBlockEntity {
                     continue;
                 }
 
-                final LazyOptional<DeviceBusElement> capability = blockEntity
-                    .getCapability(Capabilities.deviceBusElement(), direction.getOpposite());
+                final LazyOptional<DeviceBusElement> capability = Capabilities.getCapability(blockEntity, Capabilities.deviceBusElement(), direction.getOpposite());
                 capability.ifPresent(DeviceBus::scheduleScan);
             }
         });

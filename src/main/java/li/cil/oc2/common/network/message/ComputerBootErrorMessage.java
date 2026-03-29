@@ -7,7 +7,8 @@ import li.cil.oc2.common.network.MessageUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import javax.annotation.Nullable;
 
@@ -31,13 +32,13 @@ public final class ComputerBootErrorMessage extends AbstractMessage {
     @Override
     public void fromBytes(final FriendlyByteBuf buffer) {
         pos = buffer.readBlockPos();
-        value = buffer.readComponent();
+        value = buffer.readNullable(ComponentSerialization.TRUSTED_CONTEXT_FREE_STREAM_CODEC);
     }
 
     @Override
     public void toBytes(final FriendlyByteBuf buffer) {
         buffer.writeBlockPos(pos);
-        buffer.writeComponent(value);
+        buffer.writeNullable(value, ComponentSerialization.TRUSTED_CONTEXT_FREE_STREAM_CODEC);
     }
 
     ///////////////////////////////////////////////////////////////////

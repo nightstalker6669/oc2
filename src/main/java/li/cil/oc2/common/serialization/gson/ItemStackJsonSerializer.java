@@ -8,6 +8,7 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import li.cil.oc2.common.bus.device.rpc.RPCItemStackTagFilters;
 import li.cil.oc2.common.serialization.NBTToJsonConverter;
+import li.cil.oc2.common.util.ItemStackUtils;
 import net.minecraft.world.item.ItemStack;
 
 import java.lang.reflect.Type;
@@ -19,7 +20,7 @@ public final class ItemStackJsonSerializer implements JsonSerializer<ItemStack> 
             return JsonNull.INSTANCE;
         }
 
-        final JsonElement json = NBTToJsonConverter.convert(RPCItemStackTagFilters.getFilteredTag(src, src.serializeNBT()));
+        final JsonElement json = NBTToJsonConverter.convert(RPCItemStackTagFilters.getFilteredTag(src, ItemStackUtils.save(src, ItemStackUtils.getDefaultRegistries())));
 
         // Manually patch the count: the NBT conversion truncates it to byte, but some mods use larger stack sizes.
         json.getAsJsonObject().addProperty("Count", src.getCount());

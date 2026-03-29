@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "type": "directory",
+      "source": "gui/icon",
+      "prefix": "gui/icon/"
+    },
+    {
+      "type": "single",
+      "resource": "oc2:block/computer/computer_overlay_power"
+    },
+    {
+      "type": "single",
+      "resource": "oc2:block/computer/computer_overlay_status"
+    },
+    {
+      "type": "single",
+      "resource": "oc2:block/computer/computer_overlay_terminal"
+    },
+    {
+      "type": "single",
+      "resource": "oc2:block/charger/effect"
+    }
+  ]
+}

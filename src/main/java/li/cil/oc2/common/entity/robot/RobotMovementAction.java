@@ -133,14 +133,16 @@ public final class RobotMovementAction extends AbstractRobotAction {
         if (direction == null) direction = MovementDirection.FORWARD;
         direction = direction.resolve();
         if (tag.contains(ORIGIN_TAG_NAME, NBTTagIds.TAG_COMPOUND)) {
-            origin = NbtUtils.readBlockPos(tag.getCompound(ORIGIN_TAG_NAME));
+            origin = NbtUtils.readBlockPos(tag, ORIGIN_TAG_NAME).orElse(null);
         }
         if (tag.contains(START_TAG_NAME, NBTTagIds.TAG_COMPOUND)) {
-            start = NbtUtils.readBlockPos(tag.getCompound(START_TAG_NAME));
+            start = NbtUtils.readBlockPos(tag, START_TAG_NAME).orElse(null);
         }
         if (tag.contains(TARGET_TAG_NAME, NBTTagIds.TAG_COMPOUND)) {
-            target = NbtUtils.readBlockPos(tag.getCompound(TARGET_TAG_NAME));
-            targetPos = getTargetPositionInBlock(target);
+            target = NbtUtils.readBlockPos(tag, TARGET_TAG_NAME).orElse(null);
+            if (target != null) {
+                targetPos = getTargetPositionInBlock(target);
+            }
         }
     }
 
@@ -152,8 +154,8 @@ public final class RobotMovementAction extends AbstractRobotAction {
         moveTowards(robot, targetPos);
 
         final boolean didCollide = robot.horizontalCollision || robot.verticalCollision;
-        final long gameTime = robot.level.getGameTime();
-        if (didCollide && !robot.level.isClientSide()
+        final long gameTime = robot.level().getGameTime();
+        if (didCollide && !robot.level().isClientSide()
             && robot.getLastPistonMovement() < gameTime - 1) {
             final BlockPos newStart = target;
             target = start;

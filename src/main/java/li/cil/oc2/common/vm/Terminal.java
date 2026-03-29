@@ -4,7 +4,6 @@ package li.cil.oc2.common.vm;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import com.mojang.math.Matrix4f;
 import it.unimi.dsi.fastutil.bytes.ByteArrayFIFOQueue;
 import li.cil.ceres.api.Serialized;
 import li.cil.oc2.api.API;
@@ -14,8 +13,8 @@ import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
@@ -24,6 +23,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.joml.Matrix4f;
 
 // VT100 emulation: https://vt100.net/docs/vt100-ug/chapter3.html
 @Serialized
@@ -684,7 +684,7 @@ public final class Terminal {
 
     @OnlyIn(Dist.CLIENT)
     private static final class Renderer implements RendererModel, RendererView {
-        private static final ResourceLocation LOCATION_FONT_TEXTURE = new ResourceLocation(API.MOD_ID, "textures/font/terminus.png");
+        private static final ResourceLocation LOCATION_FONT_TEXTURE = ResourceLocation.fromNamespaceAndPath(API.MOD_ID, "textures/font/terminus.png");
         private static final int TEXTURE_RESOLUTION = 256;
         private static final float ONE_OVER_TEXTURE_RESOLUTION = 1.0f / (float) TEXTURE_RESOLUTION;
         private static final int TEXTURE_COLUMNS = 16;
@@ -756,7 +756,7 @@ public final class Terminal {
         ///////////////////////////////////////////////////////////////
 
         private void renderBuffer(final PoseStack stack, final Matrix4f projectionMatrix) {
-            final ShaderInstance shader = GameRenderer.getPositionColorTexShader();
+            final ShaderInstance shader = GameRenderer.getPositionTexColorShader();
             if (shader == null) {
                 return;
             }
@@ -765,7 +765,9 @@ public final class Terminal {
             RenderSystem.setShaderTexture(0, LOCATION_FONT_TEXTURE);
 
             for (final VertexBuffer line : lines) {
-                line.drawWithShader(stack.last().pose(), projectionMatrix, shader);
+                if (line != null) {
+                    line.drawWithShader(stack.last().pose(), projectionMatrix, shader);
+                }
             }
 
             RenderSystem.depthMask(true);
@@ -776,28 +778,23 @@ public final class Terminal {
                 return;
             }
 
-            final BufferBuilder builder = Tesselator.getInstance().getBuilder();
-
             final int mask = dirty.getAndSet(0);
             for (int row = 0; row < lines.length; row++) {
                 if ((mask & (1 << row)) == 0) {
                     continue;
                 }
 
-                final Matrix4f matrix = Matrix4f.createTranslateMatrix(0, row * CHAR_HEIGHT, 0);
-
-                builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX);
+                final Matrix4f matrix = new Matrix4f().translation(0f, row * CHAR_HEIGHT, 0f);
+                final BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
 
                 renderBackground(matrix, builder, row);
                 renderForeground(matrix, builder, row);
 
-                builder.end();
-
                 if (lines[row] == null) {
-                    lines[row] = new VertexBuffer();
+                    lines[row] = new VertexBuffer(VertexBuffer.Usage.STATIC);
                 }
 
-                lines[row].upload(builder);
+                lines[row].upload(builder.buildOrThrow());
             }
         }
 
@@ -851,10 +848,10 @@ public final class Terminal {
             final float ulu = (TEXTURE_RESOLUTION - 1) / (float) TEXTURE_RESOLUTION;
             final float ulv = 1 / (float) TEXTURE_RESOLUTION;
 
-            buffer.vertex(matrix, x0, CHAR_HEIGHT, 0).color(r, g, b, 1).uv(ulu, ulv).endVertex();
-            buffer.vertex(matrix, x1, CHAR_HEIGHT, 0).color(r, g, b, 1).uv(ulu, ulv).endVertex();
-            buffer.vertex(matrix, x1, 0, 0).color(r, g, b, 1).uv(ulu, ulv).endVertex();
-            buffer.vertex(matrix, x0, 0, 0).color(r, g, b, 1).uv(ulu, ulv).endVertex();
+            buffer.addVertex(matrix, x0, CHAR_HEIGHT, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
+            buffer.addVertex(matrix, x1, CHAR_HEIGHT, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
+            buffer.addVertex(matrix, x1, 0, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
+            buffer.addVertex(matrix, x0, 0, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
         }
 
         private void renderForeground(final Matrix4f matrix, final BufferBuilder buffer, final int row) {
@@ -892,20 +889,20 @@ public final class Terminal {
                 final float v0 = y * (CHAR_HEIGHT * ONE_OVER_TEXTURE_RESOLUTION);
                 final float v1 = (y + 1) * (CHAR_HEIGHT * ONE_OVER_TEXTURE_RESOLUTION);
 
-                buffer.vertex(matrix, offset, CHAR_HEIGHT, 0).color(r, g, b, 1).uv(u0, v1).endVertex();
-                buffer.vertex(matrix, offset + CHAR_WIDTH, CHAR_HEIGHT, 0).color(r, g, b, 1).uv(u1, v1).endVertex();
-                buffer.vertex(matrix, offset + CHAR_WIDTH, 0, 0).color(r, g, b, 1).uv(u1, v0).endVertex();
-                buffer.vertex(matrix, offset, 0, 0).color(r, g, b, 1).uv(u0, v0).endVertex();
+                buffer.addVertex(matrix, offset, CHAR_HEIGHT, 0).setColor(r, g, b, 1f).setUv(u0, v1);
+                buffer.addVertex(matrix, offset + CHAR_WIDTH, CHAR_HEIGHT, 0).setColor(r, g, b, 1f).setUv(u1, v1);
+                buffer.addVertex(matrix, offset + CHAR_WIDTH, 0, 0).setColor(r, g, b, 1f).setUv(u1, v0);
+                buffer.addVertex(matrix, offset, 0, 0).setColor(r, g, b, 1f).setUv(u0, v0);
             }
 
             if ((style & STYLE_UNDERLINE_MASK) != 0) {
                 final float ulu = (TEXTURE_RESOLUTION - 1) / (float) TEXTURE_RESOLUTION;
                 final float ulv = 1 / (float) TEXTURE_RESOLUTION;
 
-                buffer.vertex(matrix, offset, CHAR_HEIGHT - 3, 0).color(r, g, b, 1).uv(ulu, ulv).endVertex();
-                buffer.vertex(matrix, offset + CHAR_WIDTH, CHAR_HEIGHT - 3, 0).color(r, g, b, 1).uv(ulu, ulv).endVertex();
-                buffer.vertex(matrix, offset + CHAR_WIDTH, CHAR_HEIGHT - 2, 0).color(r, g, b, 1).uv(ulu, ulv).endVertex();
-                buffer.vertex(matrix, offset, CHAR_HEIGHT - 2, 0).color(r, g, b, 1).uv(ulu, ulv).endVertex();
+                buffer.addVertex(matrix, offset, CHAR_HEIGHT - 3, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
+                buffer.addVertex(matrix, offset + CHAR_WIDTH, CHAR_HEIGHT - 3, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
+                buffer.addVertex(matrix, offset + CHAR_WIDTH, CHAR_HEIGHT - 2, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
+                buffer.addVertex(matrix, offset, CHAR_HEIGHT - 2, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
             }
         }
 
@@ -921,21 +918,19 @@ public final class Terminal {
             stack.translate(terminal.x * CHAR_WIDTH, terminal.y * CHAR_HEIGHT, 0);
 
             final Matrix4f matrix = stack.last().pose();
-            final BufferBuilder buffer = Tesselator.getInstance().getBuilder();
-            buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+            final BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
 
             final int foreground = COLORS[Color.WHITE];
             final float r = ((foreground >> 16) & 0xFF) / 255f;
             final float g = ((foreground >> 8) & 0xFF) / 255f;
             final float b = ((foreground) & 0xFF) / 255f;
 
-            buffer.vertex(matrix, 0, CHAR_HEIGHT, 0).color(r, g, b, 1).endVertex();
-            buffer.vertex(matrix, CHAR_WIDTH, CHAR_HEIGHT, 0).color(r, g, b, 1).endVertex();
-            buffer.vertex(matrix, CHAR_WIDTH, 0, 0).color(r, g, b, 1).endVertex();
-            buffer.vertex(matrix, 0, 0, 0).color(r, g, b, 1).endVertex();
+            buffer.addVertex(matrix, 0, CHAR_HEIGHT, 0).setColor(r, g, b, 1f);
+            buffer.addVertex(matrix, CHAR_WIDTH, CHAR_HEIGHT, 0).setColor(r, g, b, 1f);
+            buffer.addVertex(matrix, CHAR_WIDTH, 0, 0).setColor(r, g, b, 1f);
+            buffer.addVertex(matrix, 0, 0, 0).setColor(r, g, b, 1f);
 
-            buffer.end();
-            BufferUploader.end(buffer);
+            BufferUploader.drawWithShader(buffer.buildOrThrow());
 
             stack.popPose();
 

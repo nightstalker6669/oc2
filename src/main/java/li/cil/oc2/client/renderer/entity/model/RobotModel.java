@@ -16,11 +16,12 @@ import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.common.model.TransformationHelper;
+import net.neoforged.neoforge.common.util.TransformationHelper;
+import org.joml.Vector3f;
 
 public final class RobotModel extends EntityModel<Robot> {
-    public static final ModelLayerLocation ROBOT_MODEL_LAYER = new ModelLayerLocation(new ResourceLocation(API.MOD_ID, "robot"), "main");
-    public static final ResourceLocation ROBOT_ENTITY_TEXTURE = new ResourceLocation(API.MOD_ID, "textures/entity/robot/robot.png");
+    public static final ModelLayerLocation ROBOT_MODEL_LAYER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(API.MOD_ID, "robot"), "main");
+    public static final ResourceLocation ROBOT_ENTITY_TEXTURE = ResourceLocation.fromNamespaceAndPath(API.MOD_ID, "textures/entity/robot/robot.png");
 
     ///////////////////////////////////////////////////////////////////
 
@@ -67,17 +68,17 @@ public final class RobotModel extends EntityModel<Robot> {
     }
 
     @Override
-    public void renderToBuffer(final PoseStack stack, final VertexConsumer consumer, final int packedLight, final int packedOverlay, final float red, final float green, final float blue, final float alpha) {
+    public void renderToBuffer(final PoseStack stack, final VertexConsumer consumer, final int packedLight, final int packedOverlay, final int packedColor) {
         stack.pushPose();
         stack.translate(0, topY, 0);
-        stack.mulPose(TransformationHelper.quatFromXYZ(topRotation, true));
-        topRenderer.render(stack, consumer, packedLight, packedOverlay);
+        stack.mulPose(TransformationHelper.quatFromXYZ(new Vector3f(topRotation[0], topRotation[1], topRotation[2]), true));
+        topRenderer.render(stack, consumer, packedLight, packedOverlay, packedColor);
         stack.popPose();
 
         stack.pushPose();
         stack.translate(0, baseY, 0);
-        baseRenderer.render(stack, consumer, packedLight, packedOverlay);
-        coreRenderer.render(stack, consumer, LightTexture.pack(15, 15), packedOverlay);
+        baseRenderer.render(stack, consumer, packedLight, packedOverlay, packedColor);
+        coreRenderer.render(stack, consumer, LightTexture.pack(15, 15), packedOverlay, packedColor);
         stack.popPose();
     }
 }

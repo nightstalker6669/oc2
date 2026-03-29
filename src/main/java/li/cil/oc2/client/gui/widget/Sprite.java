@@ -3,7 +3,7 @@
 package li.cil.oc2.client.gui.widget;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.Mth;
 
 public final class Sprite {
@@ -35,13 +35,25 @@ public final class Sprite {
         draw(stack, x, y, 0, 0);
     }
 
+    public void draw(final GuiGraphics graphics, final int x, final int y) {
+        draw(graphics.pose(), x, y);
+    }
+
     public void draw(final PoseStack stack, final int x, final int y, final int uOffset, final int vOffset) {
         blit(stack, x, y, u0 + uOffset, v0 + vOffset, width, height);
+    }
+
+    public void draw(final GuiGraphics graphics, final int x, final int y, final int uOffset, final int vOffset) {
+        draw(graphics.pose(), x, y, uOffset, vOffset);
     }
 
     public void drawFillY(final PoseStack stack, final int x, final int y, final float value) {
         final int h = (int) (this.height * Mth.clamp(value, 0, 1));
         blit(stack, x, y + (height - h), u0, v0 + (height - h), width, h);
+    }
+
+    public void drawFillY(final GuiGraphics graphics, final int x, final int y, final float value) {
+        drawFillY(graphics.pose(), x, y, value);
     }
 
     private void blit(final PoseStack stack, final int x, final int y, final int u0, final int v0, final int width, final int height) {

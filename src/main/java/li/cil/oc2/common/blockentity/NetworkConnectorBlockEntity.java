@@ -27,8 +27,8 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraftforge.common.util.LazyOptional;
 
 import javax.annotation.Nullable;
@@ -207,7 +207,8 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
 
         final ListTag connections = new ListTag();
         for (final BlockPos position : connectorPositions) {
-            final CompoundTag connectionTag = NbtUtils.writeBlockPos(position);
+            final CompoundTag connectionTag = new CompoundTag();
+            connectionTag.put("position", NbtUtils.writeBlockPos(position));
             connections.add(connectionTag);
         }
         tag.put(CONNECTIONS_TAG_NAME, connections);
@@ -222,7 +223,7 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
         final ListTag connections = tag.getList(CONNECTIONS_TAG_NAME, NBTTagIds.TAG_COMPOUND);
         for (int i = 0; i < Math.min(connections.size(), MAX_CONNECTION_COUNT); i++) {
             final CompoundTag connectionTag = connections.getCompound(i);
-            final BlockPos position = NbtUtils.readBlockPos(connectionTag);
+            final BlockPos position = NbtUtils.readBlockPos(connectionTag, "position").orElse(BlockPos.ZERO);
             connectorPositions.add(position);
             dirtyConnectors.add(position);
         }
@@ -234,7 +235,8 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
 
         final ListTag connections = new ListTag();
         for (final BlockPos position : connectorPositions) {
-            final CompoundTag connectionTag = NbtUtils.writeBlockPos(position);
+            final CompoundTag connectionTag = new CompoundTag();
+            connectionTag.put("position", NbtUtils.writeBlockPos(position));
             if (ownedCables.contains(position)) {
                 connectionTag.putBoolean(IS_OWNER_TAG_NAME, true);
             }
@@ -250,7 +252,7 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
         final ListTag connections = tag.getList(CONNECTIONS_TAG_NAME, NBTTagIds.TAG_COMPOUND);
         for (int i = 0; i < Math.min(connections.size(), MAX_CONNECTION_COUNT); i++) {
             final CompoundTag connectionTag = connections.getCompound(i);
-            final BlockPos position = NbtUtils.readBlockPos(connectionTag);
+            final BlockPos position = NbtUtils.readBlockPos(connectionTag, "position").orElse(BlockPos.ZERO);
             connectorPositions.add(position);
             dirtyConnectors.add(position);
             if (connectionTag.getBoolean(IS_OWNER_TAG_NAME)) {
@@ -259,15 +261,14 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
         }
     }
 
-    @Override
     public AABB getRenderBoundingBox() {
         if (Minecraft.useShaderTransparency()) {
-            return new AABB(
+            return AABB.encapsulatingFullBlocks(
                 getBlockPos().offset(-MAX_CONNECTION_DISTANCE, -MAX_CONNECTION_DISTANCE, -MAX_CONNECTION_DISTANCE),
                 getBlockPos().offset(1 + MAX_CONNECTION_DISTANCE, 1 + MAX_CONNECTION_DISTANCE, 1 + MAX_CONNECTION_DISTANCE)
             );
         } else {
-            return super.getRenderBoundingBox();
+            return new AABB(getBlockPos());
         }
     }
 
@@ -337,7 +338,7 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
             return;
         }
 
-        adjacentInterface = blockEntity.getCapability(Capabilities.networkInterface(), facing);
+        adjacentInterface = Capabilities.getCapability(blockEntity, Capabilities.networkInterface(), facing);
         if (adjacentInterface.isPresent()) {
             LazyOptionalUtils.addWeakListener(adjacentInterface, this, (connector, unused) -> connector.setNeighborChanged());
         }
@@ -394,14 +395,14 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
             vb.subtract(ab),
             ClipContext.Block.COLLIDER,
             ClipContext.Fluid.NONE,
-            null
+            net.minecraft.world.phys.shapes.CollisionContext.empty()
         ));
         final BlockHitResult hitBA = level.clip(new ClipContext(
             vb.subtract(ab),
             va.add(ab),
             ClipContext.Block.COLLIDER,
             ClipContext.Fluid.NONE,
-            null
+            net.minecraft.world.phys.shapes.CollisionContext.empty()
         ));
 
         return hitAB.getType() != HitResult.Type.MISS ||

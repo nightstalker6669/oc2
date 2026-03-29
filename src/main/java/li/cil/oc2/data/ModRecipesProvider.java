@@ -3,27 +3,34 @@
 package li.cil.oc2.data;
 
 import li.cil.oc2.common.item.Items;
+import net.minecraft.advancements.Criterion;
 import net.minecraft.advancements.critereon.InventoryChangeTrigger;
-import net.minecraft.data.DataGenerator;
-import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.RecipeProvider;
+import net.minecraft.data.recipes.RecipeCategory;
+import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.ShapedRecipeBuilder;
 import net.minecraft.data.recipes.ShapelessRecipeBuilder;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.level.ItemLike;
-import net.minecraftforge.common.Tags;
+import net.neoforged.neoforge.common.Tags;
 
-import java.util.function.Consumer;
+import java.util.concurrent.CompletableFuture;
 
 public final class ModRecipesProvider extends RecipeProvider {
-    public ModRecipesProvider(final DataGenerator generator) {
-        super(generator);
+    private static final RecipeCategory DEVICE_CATEGORY = RecipeCategory.REDSTONE;
+    private static final RecipeCategory COMPONENT_CATEGORY = RecipeCategory.MISC;
+    private static final RecipeCategory TOOL_CATEGORY = RecipeCategory.TOOLS;
+
+    public ModRecipesProvider(final PackOutput output, final CompletableFuture<HolderLookup.Provider> lookupProvider) {
+        super(output, lookupProvider);
     }
 
     @Override
-    protected void buildCraftingRecipes(final Consumer<FinishedRecipe> consumer) {
+    protected void buildRecipes(final RecipeOutput consumer) {
         ShapedRecipeBuilder
-            .shaped(Items.COMPUTER.get())
+            .shaped(DEVICE_CATEGORY, Items.COMPUTER.get())
             .pattern("ICI")
             .pattern("XTX")
             .pattern("IBI")
@@ -37,7 +44,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.BUS_CABLE.get(), 16)
+            .shaped(DEVICE_CATEGORY, Items.BUS_CABLE.get(), 16)
             .pattern("III")
             .pattern("GTG")
             .pattern("III")
@@ -48,24 +55,24 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapelessRecipeBuilder
-            .shapeless(Items.BUS_INTERFACE.get())
+            .shapeless(DEVICE_CATEGORY, Items.BUS_INTERFACE.get())
             .requires(Items.TRANSISTOR.get())
             .requires(Items.BUS_CABLE.get())
             .unlockedBy("has_bus_cable", inventoryChange(Items.BUS_CABLE.get()))
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.NETWORK_CONNECTOR.get(), 4)
+            .shaped(DEVICE_CATEGORY, Items.NETWORK_CONNECTOR.get(), 4)
             .pattern("IGI")
             .pattern("ITI")
             .define('I', Tags.Items.INGOTS_IRON)
-            .define('G', Tags.Items.GLASS)
+            .define('G', Tags.Items.GLASS_BLOCKS_COLORLESS)
             .define('T', Items.TRANSISTOR.get())
             .unlockedBy("has_transistor", inventoryChange(Items.TRANSISTOR.get()))
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.NETWORK_HUB.get())
+            .shaped(DEVICE_CATEGORY, Items.NETWORK_HUB.get())
             .pattern("ICI")
             .pattern("XTX")
             .pattern("IBI")
@@ -78,7 +85,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.REDSTONE_INTERFACE.get())
+            .shaped(DEVICE_CATEGORY, Items.REDSTONE_INTERFACE.get())
             .pattern("ICI")
             .pattern("XTX")
             .pattern("IBI")
@@ -91,7 +98,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.DISK_DRIVE.get())
+            .shaped(DEVICE_CATEGORY, Items.DISK_DRIVE.get())
             .pattern("IUI")
             .pattern("XTD")
             .pattern("IBI")
@@ -105,7 +112,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.KEYBOARD.get())
+            .shaped(DEVICE_CATEGORY, Items.KEYBOARD.get())
             .pattern("UUU")
             .pattern("XTU")
             .pattern("IBI")
@@ -118,7 +125,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.CHARGER.get())
+            .shaped(DEVICE_CATEGORY, Items.CHARGER.get())
             .pattern("IPI")
             .pattern("XTX")
             .pattern("IRI")
@@ -131,7 +138,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.PROJECTOR.get())
+            .shaped(DEVICE_CATEGORY, Items.PROJECTOR.get())
             .pattern("GLG")
             .pattern("XTD")
             .pattern("GBG")
@@ -146,7 +153,7 @@ public final class ModRecipesProvider extends RecipeProvider {
 
 
         ShapedRecipeBuilder
-            .shaped(Items.WRENCH.get())
+            .shaped(TOOL_CATEGORY, Items.WRENCH.get())
             .pattern("I I")
             .pattern(" T ")
             .pattern(" I ")
@@ -156,7 +163,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         WrenchRecipeBuilder
-            .wrenchRecipe(Items.MANUAL.get())
+            .wrenchRecipe(COMPONENT_CATEGORY, Items.MANUAL.get())
             .requires(net.minecraft.world.item.Items.BOOK)
             .unlockedBy("has_book", inventoryChange(net.minecraft.world.item.Items.BOOK))
             .unlockedBy("has_wrench", inventoryChange(Items.WRENCH.get()))
@@ -164,18 +171,18 @@ public final class ModRecipesProvider extends RecipeProvider {
 
 
         ShapedRecipeBuilder
-            .shaped(Items.NETWORK_CABLE.get(), 8)
+            .shaped(DEVICE_CATEGORY, Items.NETWORK_CABLE.get(), 8)
             .pattern("SSS")
             .pattern("GTG")
             .pattern("SSS")
-            .define('S', Tags.Items.STRING)
-            .define('G', Tags.Items.GLASS)
+            .define('S', Tags.Items.STRINGS)
+            .define('G', Tags.Items.GLASS_BLOCKS_COLORLESS)
             .define('T', Items.TRANSISTOR.get())
             .unlockedBy("has_network_connector", inventoryChange(Items.NETWORK_CONNECTOR.get()))
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.ROBOT.get())
+            .shaped(DEVICE_CATEGORY, Items.ROBOT.get())
             .pattern("ICI")
             .pattern("PTP")
             .pattern("IBI")
@@ -189,7 +196,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.MEMORY_SMALL.get(), 2)
+            .shaped(DEVICE_CATEGORY, Items.MEMORY_SMALL.get(), 2)
             .pattern("ITI")
             .pattern(" B ")
             .define('I', Tags.Items.INGOTS_IRON)
@@ -200,7 +207,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.MEMORY_MEDIUM.get(), 2)
+            .shaped(DEVICE_CATEGORY, Items.MEMORY_MEDIUM.get(), 2)
             .pattern("GTG")
             .pattern(" B ")
             .define('G', Tags.Items.INGOTS_GOLD)
@@ -211,7 +218,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.MEMORY_LARGE.get(), 2)
+            .shaped(DEVICE_CATEGORY, Items.MEMORY_LARGE.get(), 2)
             .pattern("DTD")
             .pattern(" B ")
             .define('D', Tags.Items.GEMS_DIAMOND)
@@ -222,7 +229,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.HARD_DRIVE_SMALL.get())
+            .shaped(DEVICE_CATEGORY, Items.HARD_DRIVE_SMALL.get())
             .pattern("ITI")
             .pattern("EBE")
             .define('I', Tags.Items.INGOTS_IRON)
@@ -234,7 +241,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.HARD_DRIVE_MEDIUM.get())
+            .shaped(DEVICE_CATEGORY, Items.HARD_DRIVE_MEDIUM.get())
             .pattern("GTG")
             .pattern("EBE")
             .define('G', Tags.Items.INGOTS_GOLD)
@@ -246,7 +253,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.HARD_DRIVE_LARGE.get())
+            .shaped(DEVICE_CATEGORY, Items.HARD_DRIVE_LARGE.get())
             .pattern("DTD")
             .pattern("EBE")
             .define('D', Tags.Items.GEMS_DIAMOND)
@@ -258,14 +265,14 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         WrenchRecipeBuilder
-            .wrenchRecipe(Items.HARD_DRIVE_CUSTOM.get())
+            .wrenchRecipe(DEVICE_CATEGORY, Items.HARD_DRIVE_CUSTOM.get())
             .requires(Items.HARD_DRIVE_LARGE.get())
             .unlockedBy("has_computer", inventoryChange(Items.COMPUTER.get()))
             .unlockedBy("has_robot", inventoryChange(Items.ROBOT.get()))
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.FLASH_MEMORY.get())
+            .shaped(DEVICE_CATEGORY, Items.FLASH_MEMORY.get())
             .pattern("ITI")
             .pattern("RBR")
             .define('I', Tags.Items.INGOTS_IRON)
@@ -277,14 +284,14 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         WrenchRecipeBuilder
-            .wrenchRecipe(Items.FLASH_MEMORY_CUSTOM.get())
+            .wrenchRecipe(DEVICE_CATEGORY, Items.FLASH_MEMORY_CUSTOM.get())
             .requires(Items.FLASH_MEMORY.get())
             .unlockedBy("has_computer", inventoryChange(Items.COMPUTER.get()))
             .unlockedBy("has_robot", inventoryChange(Items.ROBOT.get()))
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.REDSTONE_INTERFACE_CARD.get())
+            .shaped(DEVICE_CATEGORY, Items.REDSTONE_INTERFACE_CARD.get())
             .pattern("IRT")
             .pattern(" B ")
             .define('R', net.minecraft.world.item.Items.REDSTONE_TORCH)
@@ -295,10 +302,10 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.NETWORK_INTERFACE_CARD.get())
+            .shaped(DEVICE_CATEGORY, Items.NETWORK_INTERFACE_CARD.get())
             .pattern("IGT")
             .pattern(" B ")
-            .define('G', Tags.Items.GLASS)
+            .define('G', Tags.Items.GLASS_BLOCKS_COLORLESS)
             .define('I', Tags.Items.INGOTS_IRON)
             .define('T', Items.TRANSISTOR.get())
             .define('B', Items.CIRCUIT_BOARD.get())
@@ -306,7 +313,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.NETWORK_TUNNEL_CARD.get())
+            .shaped(DEVICE_CATEGORY, Items.NETWORK_TUNNEL_CARD.get())
             .pattern("IET")
             .pattern(" B ")
             .define('E', Tags.Items.ENDER_PEARLS)
@@ -317,7 +324,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.FILE_IMPORT_EXPORT_CARD.get())
+            .shaped(DEVICE_CATEGORY, Items.FILE_IMPORT_EXPORT_CARD.get())
             .pattern("IET")
             .pattern(" B ")
             .define('E', net.minecraft.world.item.Items.PAPER)
@@ -328,7 +335,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.SOUND_CARD.get())
+            .shaped(DEVICE_CATEGORY, Items.SOUND_CARD.get())
             .pattern("IST")
             .pattern(" B ")
             .define('S', net.minecraft.world.item.Items.NOTE_BLOCK)
@@ -339,7 +346,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.FLOPPY.get())
+            .shaped(DEVICE_CATEGORY, Items.FLOPPY.get())
             .pattern("ITI")
             .pattern("QBQ")
             .define('I', Tags.Items.INGOTS_IRON)
@@ -351,7 +358,7 @@ public final class ModRecipesProvider extends RecipeProvider {
 
 
         ShapedRecipeBuilder
-            .shaped(Items.INVENTORY_OPERATIONS_MODULE.get())
+            .shaped(DEVICE_CATEGORY, Items.INVENTORY_OPERATIONS_MODULE.get())
             .pattern("TCG")
             .pattern(" B ")
             .define('T', Items.TRANSISTOR.get())
@@ -362,7 +369,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.BLOCK_OPERATIONS_MODULE.get())
+            .shaped(DEVICE_CATEGORY, Items.BLOCK_OPERATIONS_MODULE.get())
             .pattern("TPG")
             .pattern(" B ")
             .define('T', Items.TRANSISTOR.get())
@@ -373,7 +380,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapedRecipeBuilder
-            .shaped(Items.NETWORK_TUNNEL_MODULE.get())
+            .shaped(DEVICE_CATEGORY, Items.NETWORK_TUNNEL_MODULE.get())
             .pattern("TEG")
             .pattern(" B ")
             .define('T', Items.TRANSISTOR.get())
@@ -385,7 +392,7 @@ public final class ModRecipesProvider extends RecipeProvider {
 
 
         ShapedRecipeBuilder
-            .shaped(Items.TRANSISTOR.get(), 12)
+            .shaped(COMPONENT_CATEGORY, Items.TRANSISTOR.get(), 12)
             .pattern("RCR")
             .pattern("III")
             .define('I', Tags.Items.INGOTS_IRON)
@@ -395,7 +402,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
 
         ShapelessRecipeBuilder
-            .shapeless(Items.CIRCUIT_BOARD.get(), 6)
+            .shapeless(COMPONENT_CATEGORY, Items.CIRCUIT_BOARD.get(), 6)
             .requires(Tags.Items.INGOTS_GOLD)
             .requires(net.minecraft.world.item.Items.CLAY_BALL)
             .requires(Items.TRANSISTOR.get())
@@ -403,7 +410,7 @@ public final class ModRecipesProvider extends RecipeProvider {
             .save(consumer);
     }
 
-    private static InventoryChangeTrigger.TriggerInstance inventoryChange(final ItemLike item) {
+    private static Criterion<InventoryChangeTrigger.TriggerInstance> inventoryChange(final ItemLike item) {
         return InventoryChangeTrigger.TriggerInstance.hasItems(item);
     }
 }

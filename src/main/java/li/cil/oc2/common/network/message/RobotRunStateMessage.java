@@ -6,7 +6,7 @@ import li.cil.oc2.common.entity.Robot;
 import li.cil.oc2.common.network.MessageUtils;
 import li.cil.oc2.common.vm.VMRunState;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public final class RobotRunStateMessage extends AbstractMessage {
     private int entityId;

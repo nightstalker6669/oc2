@@ -3,179 +3,140 @@
 package li.cil.oc2.data;
 
 import com.google.common.collect.Lists;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import li.cil.oc2.common.item.Items;
-import li.cil.oc2.common.item.crafting.RecipeSerializers;
+import li.cil.oc2.common.item.crafting.WrenchRecipe;
 import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.advancements.AdvancementRequirements;
 import net.minecraft.advancements.AdvancementRewards;
-import net.minecraft.advancements.CriterionTriggerInstance;
-import net.minecraft.advancements.RequirementsStrategy;
+import net.minecraft.advancements.Criterion;
 import net.minecraft.advancements.critereon.RecipeUnlockedTrigger;
-import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.core.NonNullList;
+import net.minecraft.data.recipes.RecipeBuilder;
+import net.minecraft.data.recipes.RecipeCategory;
+import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.ItemLike;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nullable;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.Map;
+import java.util.Objects;
 
-public final class WrenchRecipeBuilder {
+public final class WrenchRecipeBuilder implements RecipeBuilder {
+    private final RecipeCategory category;
     private final Item result;
     private final int count;
     private final List<Ingredient> ingredients = Lists.newArrayList();
-    private final Advancement.Builder advancementBuilder = Advancement.Builder.advancement();
+    private final Map<String, Criterion<?>> criteria = new LinkedHashMap<>();
+    @Nullable
     private String group;
 
-    public WrenchRecipeBuilder(final ItemLike result, final int count) {
+    public WrenchRecipeBuilder(final RecipeCategory category, final ItemLike result, final int count) {
+        this.category = category;
         this.result = result.asItem();
         this.count = count;
 
         requires(Items.WRENCH.get());
     }
 
-    public static WrenchRecipeBuilder wrenchRecipe(final ItemLike resultIn) {
-        return new WrenchRecipeBuilder(resultIn, 1);
+    public static WrenchRecipeBuilder wrenchRecipe(final RecipeCategory category, final ItemLike result) {
+        return new WrenchRecipeBuilder(category, result, 1);
     }
 
-    public static WrenchRecipeBuilder wrenchRecipe(final ItemLike resultIn, final int countIn) {
-        return new WrenchRecipeBuilder(resultIn, countIn);
+    public static WrenchRecipeBuilder wrenchRecipe(final RecipeCategory category, final ItemLike result, final int count) {
+        return new WrenchRecipeBuilder(category, result, count);
     }
 
-    public WrenchRecipeBuilder requires(final TagKey<Item> tagIn) {
-        return this.requires(Ingredient.of(tagIn));
+    public static WrenchRecipeBuilder wrenchRecipe(final ItemLike result) {
+        return wrenchRecipe(RecipeCategory.MISC, result);
     }
 
-    public WrenchRecipeBuilder requires(final ItemLike itemIn) {
-        return this.requires(itemIn, 1);
+    public static WrenchRecipeBuilder wrenchRecipe(final ItemLike result, final int count) {
+        return wrenchRecipe(RecipeCategory.MISC, result, count);
     }
 
-    public WrenchRecipeBuilder requires(final ItemLike itemIn, final int quantity) {
-        for (int i = 0; i < quantity; ++i) {
-            this.requires(Ingredient.of(itemIn));
+    public WrenchRecipeBuilder requires(final TagKey<Item> tag) {
+        return requires(Ingredient.of(tag));
+    }
+
+    public WrenchRecipeBuilder requires(final ItemLike item) {
+        return requires(item, 1);
+    }
+
+    public WrenchRecipeBuilder requires(final ItemLike item, final int quantity) {
+        for (int i = 0; i < quantity; i++) {
+            requires(Ingredient.of(item));
         }
 
         return this;
     }
 
-    public WrenchRecipeBuilder requires(final Ingredient ingredientIn) {
-        return this.addIngredient(ingredientIn, 1);
+    public WrenchRecipeBuilder requires(final Ingredient ingredient) {
+        return requires(ingredient, 1);
     }
 
-    public WrenchRecipeBuilder addIngredient(final Ingredient ingredientIn, final int quantity) {
-        for (int i = 0; i < quantity; ++i) {
-            this.ingredients.add(ingredientIn);
+    public WrenchRecipeBuilder requires(final Ingredient ingredient, final int quantity) {
+        for (int i = 0; i < quantity; i++) {
+            ingredients.add(ingredient);
         }
 
         return this;
     }
 
-    public WrenchRecipeBuilder unlockedBy(final String name, final CriterionTriggerInstance criterionIn) {
-        this.advancementBuilder.addCriterion(name, criterionIn);
+    @Override
+    public WrenchRecipeBuilder unlockedBy(final String name, final Criterion<?> criterion) {
+        criteria.put(name, criterion);
         return this;
     }
 
-    public WrenchRecipeBuilder setGroup(final String groupIn) {
-        this.group = groupIn;
+    @Override
+    public WrenchRecipeBuilder group(@Nullable final String value) {
+        group = value;
         return this;
     }
 
-    public void save(final Consumer<FinishedRecipe> consumerIn) {
-        final ResourceLocation key = ForgeRegistries.ITEMS.getKey(this.result);
-        if (key != null) {
-            this.save(consumerIn, key);
-        }
+    public WrenchRecipeBuilder setGroup(@Nullable final String value) {
+        return group(value);
     }
 
-    public void save(final Consumer<FinishedRecipe> consumerIn, final String save) {
-        final ResourceLocation resourcelocation = ForgeRegistries.ITEMS.getKey(this.result);
-        if ((new ResourceLocation(save)).equals(resourcelocation)) {
-            throw new IllegalStateException("Shapeless Recipe " + save + " should remove its 'save' argument");
-        } else {
-            this.save(consumerIn, new ResourceLocation(save));
-        }
+    @Override
+    public Item getResult() {
+        return result;
     }
 
-    public void save(final Consumer<FinishedRecipe> consumerIn, final ResourceLocation id) {
-        this.validate(id);
-        this.advancementBuilder.parent(new ResourceLocation("recipes/root")).addCriterion("has_the_recipe", RecipeUnlockedTrigger.unlocked(id)).rewards(AdvancementRewards.Builder.recipe(id)).requirements(RequirementsStrategy.OR);
-        final CreativeModeTab itemCategory = this.result.getItemCategory();
-        if (itemCategory != null) {
-            consumerIn.accept(new WrenchRecipeBuilder.Result(id, this.result, this.count, this.group == null ? "" : this.group, this.ingredients, this.advancementBuilder, new ResourceLocation(id.getNamespace(), "recipes/" + itemCategory.getRecipeFolderName() + "/" + id.getPath())));
-        }
+    @Override
+    public void save(final RecipeOutput recipeOutput, final ResourceLocation id) {
+        ensureValid(id);
+
+        final Advancement.Builder advancementBuilder = recipeOutput.advancement()
+            .addCriterion("has_the_recipe", RecipeUnlockedTrigger.unlocked(id))
+            .rewards(AdvancementRewards.Builder.recipe(id))
+            .requirements(AdvancementRequirements.Strategy.OR);
+        criteria.forEach(advancementBuilder::addCriterion);
+
+        final NonNullList<Ingredient> recipeIngredients = NonNullList.create();
+        recipeIngredients.addAll(ingredients);
+
+        final AdvancementHolder advancement = advancementBuilder.build(id.withPrefix("recipes/" + category.getFolderName() + "/"));
+        final ItemStack resultStack = new ItemStack(result, count);
+        final WrenchRecipe recipe = new WrenchRecipe(
+            Objects.requireNonNullElse(group, ""),
+            RecipeBuilder.determineBookCategory(category),
+            resultStack,
+            recipeIngredients
+        );
+        recipeOutput.accept(id, recipe, advancement);
     }
 
-    private void validate(final ResourceLocation id) {
-        if (this.advancementBuilder.getCriteria().isEmpty()) {
+    private void ensureValid(final ResourceLocation id) {
+        if (criteria.isEmpty()) {
             throw new IllegalStateException("No way of obtaining recipe " + id);
-        }
-    }
-
-    public static class Result implements FinishedRecipe {
-        private final ResourceLocation id;
-        private final Item result;
-        private final int count;
-        private final String group;
-        private final List<Ingredient> ingredients;
-        private final Advancement.Builder advancementBuilder;
-        private final ResourceLocation advancementId;
-
-        public Result(final ResourceLocation idIn, final Item resultIn, final int countIn, final String groupIn, final List<Ingredient> ingredientsIn, final Advancement.Builder advancementBuilderIn, final ResourceLocation advancementIdIn) {
-            this.id = idIn;
-            this.result = resultIn;
-            this.count = countIn;
-            this.group = groupIn;
-            this.ingredients = ingredientsIn;
-            this.advancementBuilder = advancementBuilderIn;
-            this.advancementId = advancementIdIn;
-        }
-
-        public void serializeRecipeData(final JsonObject json) {
-            if (!this.group.isEmpty()) {
-                json.addProperty("group", this.group);
-            }
-
-            final JsonArray jsonarray = new JsonArray();
-
-            for (final Ingredient ingredient : this.ingredients) {
-                jsonarray.add(ingredient.toJson());
-            }
-
-            json.add("ingredients", jsonarray);
-            final JsonObject jsonobject = new JsonObject();
-            final ResourceLocation key = ForgeRegistries.ITEMS.getKey(this.result);
-            if (key != null) {
-                jsonobject.addProperty("item", key.toString());
-            }
-            if (this.count > 1) {
-                jsonobject.addProperty("count", this.count);
-            }
-
-            json.add("result", jsonobject);
-        }
-
-        public RecipeSerializer<?> getType() {
-            return RecipeSerializers.WRENCH.get();
-        }
-
-        public ResourceLocation getId() {
-            return this.id;
-        }
-
-        @Nullable
-        public JsonObject serializeAdvancement() {
-            return this.advancementBuilder.serializeToJson();
-        }
-
-        @Nullable
-        public ResourceLocation getAdvancementId() {
-            return this.advancementId;
         }
     }
 }

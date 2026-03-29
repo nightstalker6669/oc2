@@ -11,8 +11,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import li.cil.oc2.common.Constants;
 import li.cil.oc2.common.network.Network;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.protocol.game.ServerboundCustomPayloadPacket;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -30,7 +29,8 @@ public final class MultipartMessage extends AbstractMessage {
     private static final Logger LOGGER = LogManager.getLogger();
 
     private static final int MAX_MULTIPART_MESSAGE_SIZE = 1024 * Constants.KILOBYTE;
-    private static final int MAX_PAYLOAD_SIZE = ServerboundCustomPayloadPacket.MAX_PAYLOAD_SIZE;
+    // Vanilla 1.21 serverbound custom payload packets cap payload size at 32767 bytes.
+    private static final int MAX_PAYLOAD_SIZE = 32767;
     private static final int HEADER_SIZE =
         1 /* forge message index */ +
             4 /* message id */ +

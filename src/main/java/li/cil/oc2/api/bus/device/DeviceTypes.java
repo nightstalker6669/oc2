@@ -2,19 +2,18 @@
 
 package li.cil.oc2.api.bus.device;
 
-import li.cil.oc2.api.API;
-import net.minecraftforge.registries.ObjectHolder;
-
 /**
  * Lists built-in device types for convenience.
  */
-@ObjectHolder(API.MOD_ID)
 public final class DeviceTypes {
-    @ObjectHolder("memory") public static DeviceType MEMORY = null;
-    @ObjectHolder("hard_drive") public static DeviceType HARD_DRIVE = null;
-    @ObjectHolder("flash_memory") public static DeviceType FLASH_MEMORY = null;
-    @ObjectHolder("card") public static DeviceType CARD = null;
-    @ObjectHolder("robot_module") public static DeviceType ROBOT_MODULE = null;
-    @ObjectHolder("floppy") public static DeviceType FLOPPY = null;
-    @ObjectHolder("network_tunnel") public static DeviceType NETWORK_TUNNEL = null;
+    public static final DeviceType MEMORY = li.cil.oc2.common.bus.device.DeviceTypes.MEMORY.get();
+    public static final DeviceType HARD_DRIVE = li.cil.oc2.common.bus.device.DeviceTypes.HARD_DRIVE.get();
+    public static final DeviceType FLASH_MEMORY = li.cil.oc2.common.bus.device.DeviceTypes.FLASH_MEMORY.get();
+    public static final DeviceType CARD = li.cil.oc2.common.bus.device.DeviceTypes.CARD.get();
+    public static final DeviceType ROBOT_MODULE = li.cil.oc2.common.bus.device.DeviceTypes.ROBOT_MODULE.get();
+    public static final DeviceType FLOPPY = li.cil.oc2.common.bus.device.DeviceTypes.FLOPPY.get();
+    public static final DeviceType NETWORK_TUNNEL = li.cil.oc2.common.bus.device.DeviceTypes.NETWORK_TUNNEL.get();
+
+    private DeviceTypes() {
+    }
 }

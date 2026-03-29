@@ -7,8 +7,8 @@ import li.cil.manual.api.render.FontRenderer;
 import li.cil.oc2.client.renderer.font.MonospaceFontRenderer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 @OnlyIn(Dist.CLIENT)
 public final class ModManualStyle implements ManualStyle {
@@ -51,6 +51,6 @@ public final class ModManualStyle implements ManualStyle {
 
     @Override
     public SoundEvent getPageChangeSound() {
-        return SoundEvents.UI_BUTTON_CLICK;
+        return SoundEvents.UI_BUTTON_CLICK.value();
     }
 }

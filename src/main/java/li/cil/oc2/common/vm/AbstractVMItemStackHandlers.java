@@ -11,12 +11,13 @@ import li.cil.oc2.common.bus.AbstractDeviceBusElement;
 import li.cil.oc2.common.bus.AbstractItemDeviceBusElement;
 import li.cil.oc2.common.container.AbstractDeviceItemStackHandler;
 import li.cil.oc2.common.container.AbstractTypedDeviceItemStackHandler;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.wrapper.CombinedInvWrapper;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -102,23 +103,23 @@ public abstract class AbstractVMItemStackHandlers implements VMItemStackHandlers
         }
     }
 
-    public void saveItems(final CompoundTag tag) {
+    public void saveItems(final HolderLookup.Provider provider, final CompoundTag tag) {
         itemHandlers.forEach((deviceType, handler) -> {
             if (!handler.isEmpty()) {
-                tag.put(key(deviceType), handler.saveItems());
+                tag.put(key(deviceType), handler.saveItems(provider));
             }
         });
     }
 
-    public CompoundTag saveItems() {
+    public CompoundTag saveItems(final HolderLookup.Provider provider) {
         final CompoundTag tag = new CompoundTag();
-        saveItems(tag);
+        saveItems(provider, tag);
         return tag;
     }
 
-    public void loadItems(final CompoundTag tag) {
+    public void loadItems(final HolderLookup.Provider provider, final CompoundTag tag) {
         itemHandlers.forEach((deviceType, handler) ->
-            handler.loadItems(tag.getCompound(key(deviceType))));
+            handler.loadItems(provider, tag.getCompound(key(deviceType))));
     }
 
     public void saveDevices(final CompoundTag tag) {

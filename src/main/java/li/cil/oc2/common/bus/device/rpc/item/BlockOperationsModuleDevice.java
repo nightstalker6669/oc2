@@ -8,6 +8,7 @@ import li.cil.oc2.api.capabilities.Robot;
 import li.cil.oc2.api.util.RobotOperationSide;
 import li.cil.oc2.common.Config;
 import li.cil.oc2.common.util.FakePlayerUtils;
+import li.cil.oc2.common.util.TierSortingRegistry;
 import li.cil.oc2.common.util.TickUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -34,10 +35,10 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.TierSortingRegistry;
-import net.minecraftforge.event.ForgeEventFactory;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemStackHandler;
+import net.neoforged.neoforge.common.CommonHooks;
+import net.neoforged.neoforge.event.EventHooks;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
 
 import javax.annotation.Nullable;
 import java.time.Duration;
@@ -73,7 +74,7 @@ public final class BlockOperationsModuleDevice extends AbstractItemRPCDevice {
 
     @Override
     public void deserializeNBT(final CompoundTag tag) {
-        lastOperation = Mth.clamp(tag.getLong(LAST_OPERATION_TAG_NAME), 0, entity.level.getGameTime());
+        lastOperation = Mth.clamp(tag.getLong(LAST_OPERATION_TAG_NAME), 0, entity.level().getGameTime());
     }
 
     @Callback
@@ -89,7 +90,7 @@ public final class BlockOperationsModuleDevice extends AbstractItemRPCDevice {
 
         beginCooldown();
 
-        final Level level = entity.level;
+        final Level level = entity.level();
         if (!(level instanceof final ServerLevel serverLevel)) {
             return false;
         }
@@ -129,7 +130,7 @@ public final class BlockOperationsModuleDevice extends AbstractItemRPCDevice {
 
         beginCooldown();
 
-        final Level level = entity.level;
+        final Level level = entity.level();
         if (!(level instanceof final ServerLevel serverLevel)) {
             return false;
         }
@@ -212,15 +213,15 @@ public final class BlockOperationsModuleDevice extends AbstractItemRPCDevice {
     ///////////////////////////////////////////////////////////////////
 
     private void beginCooldown() {
-        lastOperation = entity.level.getGameTime();
+        lastOperation = entity.level().getGameTime();
     }
 
     private boolean isOnCooldown() {
-        return entity.level.getGameTime() - lastOperation < COOLDOWN;
+        return entity.level().getGameTime() - lastOperation < COOLDOWN;
     }
 
     private List<ItemEntity> getItemsInRange() {
-        return entity.level.getEntitiesOfClass(ItemEntity.class, entity.getBoundingBox().inflate(2));
+        return entity.level().getEntitiesOfClass(ItemEntity.class, entity.getBoundingBox().inflate(2));
     }
 
     private boolean tryHarvestBlock(final ServerLevel level, final BlockPos blockPos) {
@@ -231,8 +232,8 @@ public final class BlockOperationsModuleDevice extends AbstractItemRPCDevice {
         }
 
         final ServerPlayer player = FakePlayerUtils.getFakePlayer(level, entity);
-        final int experience = net.minecraftforge.common.ForgeHooks.onBlockBreakEvent(level, GameType.DEFAULT_MODE, player, blockPos);
-        if (experience == -1) {
+        final var event = CommonHooks.fireBlockBreak(level, GameType.DEFAULT_MODE, player, blockPos, blockState);
+        if (event.isCanceled()) {
             return false;
         }
 
@@ -252,11 +253,12 @@ public final class BlockOperationsModuleDevice extends AbstractItemRPCDevice {
             return false;
         }
 
-        if (!ForgeEventFactory.doPlayerHarvestCheck(player, blockState, true)) {
+        if (!EventHooks.doPlayerHarvestCheck(player, blockState, level, blockPos)) {
             return false;
         }
 
-        if (identity.hurt(1, level.random, null)) {
+        identity.hurtAndBreak(1, level, player, item -> { });
+        if (identity.isEmpty()) {
             return false;
         }
 

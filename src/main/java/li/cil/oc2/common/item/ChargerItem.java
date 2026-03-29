@@ -15,10 +15,9 @@ public final class ChargerItem extends ModBlockItem {
 
     ///////////////////////////////////////////////////////////////////
 
-    @Override
     public void fillItemCategory(final CreativeModeTab tab, final NonNullList<ItemStack> items) {
         if (Config.chargerUseEnergy()) {
-            super.fillItemCategory(tab, items);
+            items.add(new ItemStack(this));
         }
     }
 }
