@@ -3,12 +3,12 @@
 package li.cil.oc2.common.block;
 
 import com.mojang.serialization.MapCodec;
-import li.cil.oc2.api.bus.device.DeviceTypes;
 import li.cil.oc2.api.capabilities.RedstoneEmitter;
 import li.cil.oc2.common.Config;
 import li.cil.oc2.common.blockentity.BlockEntities;
 import li.cil.oc2.common.blockentity.ComputerBlockEntity;
 import li.cil.oc2.common.blockentity.TickableBlockEntity;
+import li.cil.oc2.common.bus.device.DeviceTypes;
 import li.cil.oc2.common.capabilities.Capabilities;
 import li.cil.oc2.common.integration.Wrenches;
 import li.cil.oc2.common.item.Items;
@@ -57,7 +57,6 @@ import java.util.List;
 import static li.cil.oc2.common.Constants.BLOCK_ENTITY_TAG_NAME_IN_ITEM;
 import static li.cil.oc2.common.Constants.ITEMS_TAG_NAME;
 import static li.cil.oc2.common.util.NBTUtils.makeInventoryTag;
-import static li.cil.oc2.common.util.RegistryUtils.key;
 import static li.cil.oc2.common.util.TranslationUtils.text;
 
 public final class ComputerBlock extends HorizontalDirectionalBlock implements EntityBlock {
@@ -254,7 +253,7 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
         final ItemStack computer = new ItemStack(this);
 
         final CompoundTag itemsTag = NBTUtils.getOrCreateChildTag(ItemStackUtils.getOrCreateModDataTag(computer), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME);
-        itemsTag.put(key(DeviceTypes.FLASH_MEMORY), makeInventoryTag(
+        itemsTag.put(DeviceTypes.FLASH_MEMORY.getId().toString(), makeInventoryTag(
             new ItemStack(Items.FLASH_MEMORY_CUSTOM.get())
         ));
 
@@ -265,16 +264,16 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
         final ItemStack computer = getComputerWithFlash();
 
         final CompoundTag itemsTag = NBTUtils.getOrCreateChildTag(ItemStackUtils.getOrCreateModDataTag(computer), BLOCK_ENTITY_TAG_NAME_IN_ITEM, ITEMS_TAG_NAME);
-        itemsTag.put(key(DeviceTypes.MEMORY), makeInventoryTag(
+        itemsTag.put(DeviceTypes.MEMORY.getId().toString(), makeInventoryTag(
             new ItemStack(Items.MEMORY_LARGE.get()),
             new ItemStack(Items.MEMORY_LARGE.get()),
             new ItemStack(Items.MEMORY_LARGE.get()),
             new ItemStack(Items.MEMORY_LARGE.get())
         ));
-        itemsTag.put(key(DeviceTypes.HARD_DRIVE), makeInventoryTag(
+        itemsTag.put(DeviceTypes.HARD_DRIVE.getId().toString(), makeInventoryTag(
             new ItemStack(Items.HARD_DRIVE_CUSTOM.get())
         ));
-        itemsTag.put(key(DeviceTypes.CARD), makeInventoryTag(
+        itemsTag.put(DeviceTypes.CARD.getId().toString(), makeInventoryTag(
             new ItemStack(Items.NETWORK_INTERFACE_CARD.get())
         ));
 

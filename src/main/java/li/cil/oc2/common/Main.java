@@ -15,6 +15,7 @@ import li.cil.oc2.common.container.Containers;
 import li.cil.oc2.common.entity.Entities;
 import li.cil.oc2.common.integration.IMC;
 import li.cil.oc2.common.item.ItemRenameHandler;
+import li.cil.oc2.common.item.ItemGroup;
 import li.cil.oc2.common.item.Items;
 import li.cil.oc2.common.item.crafting.RecipeSerializers;
 import li.cil.oc2.common.serialization.ceres.Serializers;
@@ -48,6 +49,7 @@ public final class Main {
         BlockTags.initialize();
         Blocks.initialize();
         Items.initialize();
+        ItemGroup.initialize();
         BlockEntities.initialize();
         Entities.initialize();
         Containers.initialize();

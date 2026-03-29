@@ -10,6 +10,9 @@ import net.neoforged.neoforge.client.model.geometry.IGeometryLoader;
 public final class BusCableModelLoader implements IGeometryLoader<BusCableModel> {
     @Override
     public BusCableModel read(final JsonObject modelContents, final JsonDeserializationContext context) {
-        return new BusCableModel(context.deserialize(modelContents, BlockModel.class));
+        final JsonObject baseModelContents = modelContents.deepCopy();
+        baseModelContents.remove("loader");
+
+        return new BusCableModel(context.deserialize(baseModelContents, BlockModel.class));
     }
 }

@@ -26,6 +26,7 @@ import net.minecraft.world.item.ItemStack;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static li.cil.oc2.common.Constants.*;
 import static li.cil.oc2.common.util.TextFormatUtils.withFormat;
@@ -160,7 +161,11 @@ public final class TooltipUtils {
     private static String[] getDeviceTypeNames() {
         final var registry = li.cil.oc2.common.bus.device.DeviceTypes.DEVICE_TYPE_REGISTRY.get();
         if (registry != null) {
-            return registry.getValues().stream().map(RegistryUtils::key).toArray(String[]::new);
+            return registry.getValues().stream()
+                .map(registry::getKey)
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .toArray(String[]::new);
         } else {
             return new String[0];
         }

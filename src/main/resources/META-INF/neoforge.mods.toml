@@ -46,5 +46,19 @@ versionRange = "${markdown_manual_version_range}"
 ordering = "NONE"
 side = "CLIENT"
 
+[[dependencies.oc2]]
+modId = "jei"
+type = "optional"
+versionRange = "${jei_version_range}"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.oc2]]
+modId = "jade"
+type = "optional"
+versionRange = "${jade_version_range}"
+ordering = "NONE"
+side = "CLIENT"
+
 [features.oc2]
 javaVersion = "[21,)"

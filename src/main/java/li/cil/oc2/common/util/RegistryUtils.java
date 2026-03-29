@@ -10,6 +10,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.IForgeRegistryEntry;
+import net.minecraftforge.registries.RegistryObject;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -65,6 +66,10 @@ public abstract class RegistryUtils {
         return Objects.requireNonNull(registryEntry.getRegistryName()).toString();
     }
 
+    public static <T> String key(final RegistryObject<T> registryObject) {
+        return registryObject.getId().toString();
+    }
+
     public static <T> Optional<String> optionalKey(@Nullable final IForgeRegistryEntry<T> registryEntry) {
         if (registryEntry == null) {
             return Optional.empty();
@@ -76,6 +81,14 @@ public abstract class RegistryUtils {
         }
 
         return Optional.of(providerName.toString());
+    }
+
+    public static <T> Optional<String> optionalKey(@Nullable final RegistryObject<T> registryObject) {
+        if (registryObject == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(registryObject.getId().toString());
     }
 
     private RegistryUtils() {

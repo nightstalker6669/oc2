@@ -3,9 +3,9 @@
 package li.cil.oc2.common.item;
 
 import li.cil.oc2.api.API;
-import li.cil.oc2.api.bus.device.DeviceTypes;
 import li.cil.oc2.client.renderer.entity.RobotWithoutLevelRenderer;
 import li.cil.oc2.common.Config;
+import li.cil.oc2.common.bus.device.DeviceTypes;
 import li.cil.oc2.common.energy.EnergyStorageItemStack;
 import li.cil.oc2.common.entity.Entities;
 import li.cil.oc2.common.entity.Robot;
@@ -41,7 +41,6 @@ import java.util.function.Consumer;
 
 import static li.cil.oc2.common.Constants.*;
 import static li.cil.oc2.common.util.NBTUtils.makeInventoryTag;
-import static li.cil.oc2.common.util.RegistryUtils.key;
 
 public final class RobotItem extends ModItem {
     public void fillItemCategory(final CreativeModeTab tab, final NonNullList<ItemStack> items) {
@@ -130,7 +129,7 @@ public final class RobotItem extends ModItem {
         final ItemStack robot = new ItemStack(this);
 
         final CompoundTag itemsTag = NBTUtils.getOrCreateChildTag(ItemStackUtils.getOrCreateModDataTag(robot), API.MOD_ID, ITEMS_TAG_NAME);
-        itemsTag.put(key(DeviceTypes.FLASH_MEMORY), makeInventoryTag(
+        itemsTag.put(DeviceTypes.FLASH_MEMORY.getId().toString(), makeInventoryTag(
             new ItemStack(Items.FLASH_MEMORY_CUSTOM.get())
         ));
 

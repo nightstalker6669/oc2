@@ -114,7 +114,9 @@ dependencies {
     }
 
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
-    runs "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    modRuntime "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    compileOnly "curse.maven:jade-${jade_project_id}:${jade_file_id}"
+    modRuntime "curse.maven:jade-${jade_project_id}:${jade_file_id}"
 
     testImplementation "org.mockito:mockito-core:5.2.0"
     testImplementation "net.bytebuddy:byte-buddy:1.18.7"
@@ -183,6 +185,8 @@ tasks.withType(ProcessResources).configureEach {
         mod_authors                    : mod_authors,
         mod_description                : mod_description,
         sedna_version_range            : sedna_version_range,
+        jei_version_range              : jei_version_range,
+        jade_version_range             : jade_version_range,
         markdown_manual_version_range  : markdown_manual_version_range,
     ]
     inputs.properties(replaceProperties)

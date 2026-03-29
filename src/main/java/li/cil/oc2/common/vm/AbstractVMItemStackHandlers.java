@@ -22,8 +22,6 @@ import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static li.cil.oc2.common.util.RegistryUtils.key;
-
 public abstract class AbstractVMItemStackHandlers implements VMItemStackHandlers {
     public record GroupDefinition(DeviceType deviceType, int count) { }
 
@@ -106,7 +104,7 @@ public abstract class AbstractVMItemStackHandlers implements VMItemStackHandlers
     public void saveItems(final HolderLookup.Provider provider, final CompoundTag tag) {
         itemHandlers.forEach((deviceType, handler) -> {
             if (!handler.isEmpty()) {
-                tag.put(key(deviceType), handler.saveItems(provider));
+                tag.put(deviceTypeKey(deviceType), handler.saveItems(provider));
             }
         });
     }
@@ -119,12 +117,12 @@ public abstract class AbstractVMItemStackHandlers implements VMItemStackHandlers
 
     public void loadItems(final HolderLookup.Provider provider, final CompoundTag tag) {
         itemHandlers.forEach((deviceType, handler) ->
-            handler.loadItems(provider, tag.getCompound(key(deviceType))));
+            handler.loadItems(provider, tag.getCompound(deviceTypeKey(deviceType))));
     }
 
     public void saveDevices(final CompoundTag tag) {
         itemHandlers.forEach((deviceType, handler) ->
-            tag.put(key(deviceType), handler.saveDevices()));
+            tag.put(deviceTypeKey(deviceType), handler.saveDevices()));
     }
 
     public CompoundTag saveDevices() {
@@ -135,7 +133,7 @@ public abstract class AbstractVMItemStackHandlers implements VMItemStackHandlers
 
     public void loadDevices(final CompoundTag tag) {
         itemHandlers.forEach((deviceType, handler) ->
-            handler.loadDevices(tag.getCompound(key(deviceType))));
+            handler.loadDevices(tag.getCompound(deviceTypeKey(deviceType))));
     }
 
     ///////////////////////////////////////////////////////////////////
@@ -143,6 +141,11 @@ public abstract class AbstractVMItemStackHandlers implements VMItemStackHandlers
     protected abstract ItemDeviceQuery makeQuery(final ItemStack stack);
 
     protected void onChanged() {
+    }
+
+    private static String deviceTypeKey(final DeviceType deviceType) {
+        final var registry = li.cil.oc2.common.bus.device.DeviceTypes.DEVICE_TYPE_REGISTRY.get();
+        return Objects.requireNonNull(Objects.requireNonNull(registry).getKey(deviceType)).toString();
     }
 
     ///////////////////////////////////////////////////////////////////

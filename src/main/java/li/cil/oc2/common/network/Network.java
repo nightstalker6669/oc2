@@ -34,10 +34,16 @@ public final class Network {
     ///////////////////////////////////////////////////////////////////
 
     private static int nextPacketId = 1;
+    private static boolean initialized;
 
     ///////////////////////////////////////////////////////////////////
 
     public static void initialize() {
+        if (initialized) {
+            return;
+        }
+        initialized = true;
+
         registerMessage(ComputerTerminalOutputMessage.class, ComputerTerminalOutputMessage::new, NetworkDirection.PLAY_TO_CLIENT);
         registerMessage(ComputerTerminalInputMessage.class, ComputerTerminalInputMessage::new, NetworkDirection.PLAY_TO_SERVER);
         registerMessage(ComputerRunStateMessage.class, ComputerRunStateMessage::new, NetworkDirection.PLAY_TO_CLIENT);
