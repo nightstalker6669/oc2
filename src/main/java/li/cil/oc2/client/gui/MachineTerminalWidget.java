@@ -12,7 +12,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.Nullable;
@@ -37,7 +36,6 @@ public final class MachineTerminalWidget {
     private final Terminal terminal;
     private int leftPos, topPos;
     private boolean isMouseOverTerminal;
-    private Terminal.RendererView rendererView;
 
     ///////////////////////////////////////////////////////////////////
 
@@ -59,16 +57,12 @@ public final class MachineTerminalWidget {
 
     public void render(final GuiGraphics graphics, final int mouseX, final int mouseY, @Nullable final Component error) {
         if (container.getVirtualMachine().isRunning()) {
-            final PoseStack terminalStack = new PoseStack();
-            terminalStack.translate(leftPos + TERMINAL_X, topPos + TERMINAL_Y, 0f);
-            terminalStack.scale(TERMINAL_WIDTH / (float) terminal.getWidth(), TERMINAL_HEIGHT / (float) terminal.getHeight(), 1f);
-
-            if (rendererView == null) {
-                rendererView = terminal.getRenderer();
-            }
-
-            final Matrix4f projectionMatrix = new Matrix4f().setOrtho(0f, parent.width, 0f, parent.height, -10f, 10f);
-            rendererView.render(terminalStack, projectionMatrix);
+            final PoseStack poseStack = graphics.pose();
+            poseStack.pushPose();
+            poseStack.translate(leftPos + TERMINAL_X, topPos + TERMINAL_Y, 0f);
+            poseStack.scale(TERMINAL_WIDTH / (float) terminal.getWidth(), TERMINAL_HEIGHT / (float) terminal.getHeight(), 1f);
+            terminal.renderToGui(graphics);
+            poseStack.popPose();
         } else {
             final Font font = getClient().font;
             if (error != null) {
@@ -127,10 +121,6 @@ public final class MachineTerminalWidget {
     }
 
     public void onClose() {
-        if (rendererView != null) {
-            terminal.releaseRenderer(rendererView);
-            rendererView = null;
-        }
     }
 
     ///////////////////////////////////////////////////////////////////

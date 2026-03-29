@@ -8,6 +8,7 @@ import it.unimi.dsi.fastutil.bytes.ByteArrayFIFOQueue;
 import li.cil.ceres.api.Serialized;
 import li.cil.oc2.api.API;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -142,6 +143,11 @@ public final class Terminal {
         final Renderer renderer = new Renderer(this);
         renderers.add(renderer);
         return renderer;
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public void renderToGui(final GuiGraphics graphics) {
+        GuiRenderer.render(this, graphics);
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -683,6 +689,78 @@ public final class Terminal {
     }
 
     @OnlyIn(Dist.CLIENT)
+    private static final class GuiRenderer {
+        private static void render(final Terminal terminal, final GuiGraphics graphics) {
+            for (int row = 0; row < HEIGHT; row++) {
+                renderRow(terminal, graphics, row);
+            }
+
+            if ((System.currentTimeMillis() + terminal.hashCode()) % 1000 > 500 &&
+                terminal.x >= 0 && terminal.x < WIDTH &&
+                terminal.y >= 0 && terminal.y < HEIGHT) {
+                graphics.fill(
+                    terminal.x * CHAR_WIDTH,
+                    terminal.y * CHAR_HEIGHT,
+                    terminal.x * CHAR_WIDTH + CHAR_WIDTH,
+                    terminal.y * CHAR_HEIGHT + CHAR_HEIGHT,
+                    0xFFFFFFFF
+                );
+            }
+        }
+
+        private static void renderRow(final Terminal terminal, final GuiGraphics graphics, final int row) {
+            final int y = row * CHAR_HEIGHT;
+            for (int col = 0, index = row * WIDTH; col < WIDTH; col++, index++) {
+                final byte colors = terminal.colors[index];
+                final byte style = terminal.styles[index];
+                if ((style & STYLE_HIDDEN_MASK) != 0) {
+                    continue;
+                }
+
+                final int[] palette = (style & STYLE_DIM_MASK) != 0 ? Renderer.DIM_COLORS : Renderer.COLORS;
+                final int foregroundIndex = (colors >> COLOR_FOREGROUND_SHIFT) & COLOR_MASK;
+                final int backgroundIndex = colors & COLOR_MASK;
+                final boolean invert = (style & STYLE_INVERT_MASK) != 0;
+                final int foreground = palette[invert ? backgroundIndex : foregroundIndex];
+                final int background = palette[invert ? foregroundIndex : backgroundIndex];
+                final int x = col * CHAR_WIDTH;
+
+                if (background != palette[0]) {
+                    graphics.fill(x, y, x + CHAR_WIDTH, y + CHAR_HEIGHT, 0xFF000000 | background);
+                }
+
+                final int character = terminal.buffer[index] & 0xFF;
+                if (Renderer.isPrintableCharacter((char) character)) {
+                    final int glyphX = character % Renderer.TEXTURE_COLUMNS + ((style & STYLE_BOLD_MASK) != 0 ? Renderer.TEXTURE_BOLD_SHIFT : 0);
+                    final int glyphY = character / Renderer.TEXTURE_COLUMNS;
+                    graphics.setColor(
+                        ((foreground >> 16) & 0xFF) / 255f,
+                        ((foreground >> 8) & 0xFF) / 255f,
+                        (foreground & 0xFF) / 255f,
+                        1f
+                    );
+                    graphics.blit(
+                        Renderer.LOCATION_FONT_TEXTURE,
+                        x,
+                        y,
+                        glyphX * CHAR_WIDTH,
+                        glyphY * CHAR_HEIGHT,
+                        CHAR_WIDTH,
+                        CHAR_HEIGHT,
+                        Renderer.TEXTURE_RESOLUTION,
+                        Renderer.TEXTURE_RESOLUTION
+                    );
+                    graphics.setColor(1f, 1f, 1f, 1f);
+                }
+
+                if ((style & STYLE_UNDERLINE_MASK) != 0) {
+                    graphics.fill(x, y + CHAR_HEIGHT - 3, x + CHAR_WIDTH, y + CHAR_HEIGHT - 2, 0xFF000000 | foreground);
+                }
+            }
+        }
+    }
+
+    @OnlyIn(Dist.CLIENT)
     private static final class Renderer implements RendererModel, RendererView {
         private static final ResourceLocation LOCATION_FONT_TEXTURE = ResourceLocation.fromNamespaceAndPath(API.MOD_ID, "textures/font/terminus.png");
         private static final int TEXTURE_RESOLUTION = 256;
@@ -756,12 +834,18 @@ public final class Terminal {
         ///////////////////////////////////////////////////////////////
 
         private void renderBuffer(final PoseStack stack, final Matrix4f projectionMatrix) {
+            RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
             final ShaderInstance shader = GameRenderer.getPositionTexColorShader();
             if (shader == null) {
                 return;
             }
 
+            RenderSystem.disableCull();
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
             RenderSystem.depthMask(false);
+            RenderSystem.resetTextureMatrix();
+            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
             RenderSystem.setShaderTexture(0, LOCATION_FONT_TEXTURE);
 
             for (final VertexBuffer line : lines) {
@@ -775,6 +859,8 @@ public final class Terminal {
 
             VertexBuffer.unbind();
 
+            RenderSystem.disableBlend();
+            RenderSystem.enableCull();
             RenderSystem.depthMask(true);
         }
 
@@ -891,10 +977,10 @@ public final class Terminal {
             final float ulu = (TEXTURE_RESOLUTION - 1) / (float) TEXTURE_RESOLUTION;
             final float ulv = 1 / (float) TEXTURE_RESOLUTION;
 
-            buffer.addVertex(matrix, x0, CHAR_HEIGHT, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
-            buffer.addVertex(matrix, x1, CHAR_HEIGHT, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
-            buffer.addVertex(matrix, x1, 0, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
-            buffer.addVertex(matrix, x0, 0, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
+            buffer.addVertex(matrix, x0, CHAR_HEIGHT, 0).setUv(ulu, ulv).setColor(r, g, b, 1f);
+            buffer.addVertex(matrix, x1, CHAR_HEIGHT, 0).setUv(ulu, ulv).setColor(r, g, b, 1f);
+            buffer.addVertex(matrix, x1, 0, 0).setUv(ulu, ulv).setColor(r, g, b, 1f);
+            buffer.addVertex(matrix, x0, 0, 0).setUv(ulu, ulv).setColor(r, g, b, 1f);
         }
 
         private void renderForeground(final Matrix4f matrix, final BufferBuilder buffer, final int row) {
@@ -932,20 +1018,20 @@ public final class Terminal {
                 final float v0 = y * (CHAR_HEIGHT * ONE_OVER_TEXTURE_RESOLUTION);
                 final float v1 = (y + 1) * (CHAR_HEIGHT * ONE_OVER_TEXTURE_RESOLUTION);
 
-                buffer.addVertex(matrix, offset, CHAR_HEIGHT, 0).setColor(r, g, b, 1f).setUv(u0, v1);
-                buffer.addVertex(matrix, offset + CHAR_WIDTH, CHAR_HEIGHT, 0).setColor(r, g, b, 1f).setUv(u1, v1);
-                buffer.addVertex(matrix, offset + CHAR_WIDTH, 0, 0).setColor(r, g, b, 1f).setUv(u1, v0);
-                buffer.addVertex(matrix, offset, 0, 0).setColor(r, g, b, 1f).setUv(u0, v0);
+                buffer.addVertex(matrix, offset, CHAR_HEIGHT, 0).setUv(u0, v1).setColor(r, g, b, 1f);
+                buffer.addVertex(matrix, offset + CHAR_WIDTH, CHAR_HEIGHT, 0).setUv(u1, v1).setColor(r, g, b, 1f);
+                buffer.addVertex(matrix, offset + CHAR_WIDTH, 0, 0).setUv(u1, v0).setColor(r, g, b, 1f);
+                buffer.addVertex(matrix, offset, 0, 0).setUv(u0, v0).setColor(r, g, b, 1f);
             }
 
             if ((style & STYLE_UNDERLINE_MASK) != 0) {
                 final float ulu = (TEXTURE_RESOLUTION - 1) / (float) TEXTURE_RESOLUTION;
                 final float ulv = 1 / (float) TEXTURE_RESOLUTION;
 
-                buffer.addVertex(matrix, offset, CHAR_HEIGHT - 3, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
-                buffer.addVertex(matrix, offset + CHAR_WIDTH, CHAR_HEIGHT - 3, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
-                buffer.addVertex(matrix, offset + CHAR_WIDTH, CHAR_HEIGHT - 2, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
-                buffer.addVertex(matrix, offset, CHAR_HEIGHT - 2, 0).setColor(r, g, b, 1f).setUv(ulu, ulv);
+                buffer.addVertex(matrix, offset, CHAR_HEIGHT - 3, 0).setUv(ulu, ulv).setColor(r, g, b, 1f);
+                buffer.addVertex(matrix, offset + CHAR_WIDTH, CHAR_HEIGHT - 3, 0).setUv(ulu, ulv).setColor(r, g, b, 1f);
+                buffer.addVertex(matrix, offset + CHAR_WIDTH, CHAR_HEIGHT - 2, 0).setUv(ulu, ulv).setColor(r, g, b, 1f);
+                buffer.addVertex(matrix, offset, CHAR_HEIGHT - 2, 0).setUv(ulu, ulv).setColor(r, g, b, 1f);
             }
         }
 
