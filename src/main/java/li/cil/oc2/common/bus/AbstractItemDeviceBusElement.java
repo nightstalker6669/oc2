@@ -10,13 +10,13 @@ import li.cil.oc2.common.bus.device.provider.Providers;
 import li.cil.oc2.common.bus.device.rpc.TypeNameRPCDevice;
 import li.cil.oc2.common.bus.device.util.Devices;
 import li.cil.oc2.common.bus.device.util.ItemDeviceInfo;
+import li.cil.oc2.common.registry.RegistryView;
 import li.cil.oc2.common.util.ItemDeviceUtils;
 import li.cil.oc2.common.util.NBTTagIds;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.registries.IForgeRegistry;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -101,7 +101,7 @@ public abstract class AbstractItemDeviceBusElement extends AbstractGroupingDevic
     @Override
     protected void onEntryRemoved(final String dataKey, final CompoundTag tag, @Nullable final ItemDeviceQuery query) {
         super.onEntryRemoved(dataKey, tag, query);
-        final IForgeRegistry<ItemDeviceProvider> registry = Providers.itemDeviceProviderRegistry();
+        final RegistryView<ItemDeviceProvider> registry = Providers.itemDeviceProviderRegistry();
         final ItemDeviceProvider provider = registry.getValue(ResourceLocation.parse(dataKey));
         if (provider != null) {
             provider.unmount(query, tag);
@@ -149,7 +149,7 @@ public abstract class AbstractItemDeviceBusElement extends AbstractGroupingDevic
     protected record ItemEntry(ItemDeviceInfo deviceInfo) implements GroupingDeviceBusEntry {
         @Override
         public Optional<String> getDeviceDataKey() {
-            return optionalKey(deviceInfo.provider);
+            return optionalKey(Providers.itemDeviceProviderRegistry(), deviceInfo.provider);
         }
 
         @Override

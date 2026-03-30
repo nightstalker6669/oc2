@@ -3,21 +3,21 @@
 package li.cil.oc2.common.energy;
 
 import li.cil.oc2.common.capabilities.Capabilities;
+import li.cil.oc2.common.capabilities.CapabilityProvider;
+import li.cil.oc2.common.capabilities.CapabilityRef;
 import li.cil.oc2.common.util.NBTUtils;
+import li.cil.oc2.common.util.LazyValue;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.LazyOptional;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public final class EnergyStorageItemStack implements IEnergyStorage, ICapabilityProvider {
-    private final LazyOptional<IEnergyStorage> optional = LazyOptional.of(() -> this);
+public final class EnergyStorageItemStack implements IEnergyStorage, CapabilityProvider {
+    private final LazyValue<IEnergyStorage> optional = LazyValue.of(() -> this);
 
     private final ItemStack stack;
     private final int capacity;
@@ -48,7 +48,7 @@ public final class EnergyStorageItemStack implements IEnergyStorage, ICapability
 
     @Override
     public int getEnergyStored() {
-        return NBTUtils.getChildTag(stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).getUnsafe(), tagPath)
+        return NBTUtils.getChildTag(stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag(), tagPath)
             .getInt(FixedEnergyStorage.STORED_TAG_NAME);
     }
 
@@ -69,10 +69,10 @@ public final class EnergyStorageItemStack implements IEnergyStorage, ICapability
 
     @Nonnull
     @Override
-    public <T> LazyOptional<T> getCapability(final Capability<T> capability, @Nullable final Direction side) {
+    public <T> LazyValue<T> getCapability(final CapabilityRef<T> capability, @Nullable final Direction side) {
         if (capability == Capabilities.energyStorage()) {
             return optional.cast();
         }
-        return LazyOptional.empty();
+        return LazyValue.empty();
     }
 }

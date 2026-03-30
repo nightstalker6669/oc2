@@ -405,6 +405,7 @@ public final class FileChooserScreen extends Screen {
             }
 
             public void select() {
+                final Path file = this.file;
                 if (directory != null && Objects.equals(directory.getParent(), file)) {
                     fileNameTextField.setValue("..");
                 } else if (file != null) {

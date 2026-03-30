@@ -74,6 +74,7 @@ public final class DiskDriveBlockEntity extends ModBlockEntity implements DiskDr
     }
 
     public void eject(@Nullable final Player player) {
+        final var level = this.level;
         if (level == null) {
             return;
         }

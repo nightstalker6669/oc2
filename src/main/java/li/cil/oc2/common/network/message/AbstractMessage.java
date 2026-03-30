@@ -39,7 +39,7 @@ public abstract class AbstractMessage {
         throw new NotImplementedException("Message implements neither asynchronous nor synchronous handleMessage() method.");
     }
 
-    protected <T> void reply(final T message, final NetworkEvent.Context context) {
-        Network.INSTANCE.reply(message, context);
+    protected <T extends AbstractMessage> void reply(final T message, final NetworkEvent.Context context) {
+        Network.reply(message, context);
     }
 }

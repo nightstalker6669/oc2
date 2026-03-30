@@ -15,6 +15,7 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Array;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 public final class NBTSerialization {
@@ -74,67 +75,71 @@ public final class NBTSerialization {
 
     private record Serializer(CompoundTag tag) implements SerializationVisitor {
         @Override
-        public void putBoolean(final String name, final boolean value) {
-            tag.putBoolean(name, value);
+        public void putBoolean(@Nullable final String name, final boolean value) {
+            tag.putBoolean(Objects.requireNonNull(name), value);
         }
 
         @Override
-        public void putByte(final String name, final byte value) {
-            tag.putByte(name, value);
+        public void putByte(@Nullable final String name, final byte value) {
+            tag.putByte(Objects.requireNonNull(name), value);
         }
 
         @Override
-        public void putChar(final String name, final char value) {
-            tag.putInt(name, value);
+        public void putChar(@Nullable final String name, final char value) {
+            tag.putInt(Objects.requireNonNull(name), value);
         }
 
         @Override
-        public void putShort(final String name, final short value) {
-            tag.putShort(name, value);
+        public void putShort(@Nullable final String name, final short value) {
+            tag.putShort(Objects.requireNonNull(name), value);
         }
 
         @Override
-        public void putInt(final String name, final int value) {
-            tag.putInt(name, value);
+        public void putInt(@Nullable final String name, final int value) {
+            tag.putInt(Objects.requireNonNull(name), value);
         }
 
         @Override
-        public void putLong(final String name, final long value) {
-            tag.putLong(name, value);
+        public void putLong(@Nullable final String name, final long value) {
+            tag.putLong(Objects.requireNonNull(name), value);
         }
 
         @Override
-        public void putFloat(final String name, final float value) {
-            tag.putFloat(name, value);
+        public void putFloat(@Nullable final String name, final float value) {
+            tag.putFloat(Objects.requireNonNull(name), value);
         }
 
         @Override
-        public void putDouble(final String name, final double value) {
-            tag.putDouble(name, value);
+        public void putDouble(@Nullable final String name, final double value) {
+            tag.putDouble(Objects.requireNonNull(name), value);
         }
 
         @SuppressWarnings({"unchecked", "rawtypes"})
         @Override
-        public void putObject(final String name, final Class<?> type, @Nullable final Object value) throws SerializationException {
-            if (putIsNull(name, value)) {
+        public void putObject(@Nullable final String name, @Nullable final Class<?> type, @Nullable final Object value) throws SerializationException {
+            final String actualName = Objects.requireNonNull(name);
+            if (putIsNull(actualName, value)) {
                 return;
             }
 
-            if (type.isArray()) {
-                tag.put(name, putArray(name, type, value));
-            } else if (type.isEnum()) {
-                tag.putString(name, ((Enum) value).name());
-            } else if (type == String.class) {
-                tag.putString(name, (String) value);
-            } else if (type == UUID.class) {
+            final Class<?> actualType = Objects.requireNonNull(type);
+            final Object actualValue = Objects.requireNonNull(value);
+
+            if (actualType.isArray()) {
+                tag.put(actualName, putArray(actualName, actualType, actualValue));
+            } else if (actualType.isEnum()) {
+                tag.putString(actualName, ((Enum) actualValue).name());
+            } else if (actualType == String.class) {
+                tag.putString(actualName, (String) actualValue);
+            } else if (actualType == UUID.class) {
                 final CompoundTag uuidTag = new CompoundTag();
-                uuidTag.putUUID(name, (UUID) value);
-                tag.put(name, uuidTag);
+                uuidTag.putUUID(actualName, (UUID) actualValue);
+                tag.put(actualName, uuidTag);
             } else {
                 final CompoundTag valueTag = new CompoundTag();
-                Ceres.getSerializer(type).serialize(new Serializer(valueTag), (Class) type, value);
+                Ceres.getSerializer(actualType).serialize(new Serializer(valueTag), (Class) actualType, actualValue);
                 if (!valueTag.isEmpty()) {
-                    tag.put(name, valueTag);
+                    tag.put(actualName, valueTag);
                 }
             }
         }
@@ -206,71 +211,75 @@ public final class NBTSerialization {
 
     private record Deserializer(CompoundTag tag) implements DeserializationVisitor {
         @Override
-        public boolean getBoolean(final String name) {
-            return tag.getBoolean(name);
+        public boolean getBoolean(@Nullable final String name) {
+            return tag.getBoolean(Objects.requireNonNull(name));
         }
 
         @Override
-        public byte getByte(final String name) {
-            return tag.getByte(name);
+        public byte getByte(@Nullable final String name) {
+            return tag.getByte(Objects.requireNonNull(name));
         }
 
         @Override
-        public char getChar(final String name) {
-            return (char) tag.getInt(name);
+        public char getChar(@Nullable final String name) {
+            return (char) tag.getInt(Objects.requireNonNull(name));
         }
 
         @Override
-        public short getShort(final String name) {
-            return tag.getShort(name);
+        public short getShort(@Nullable final String name) {
+            return tag.getShort(Objects.requireNonNull(name));
         }
 
         @Override
-        public int getInt(final String name) {
-            return tag.getInt(name);
+        public int getInt(@Nullable final String name) {
+            return tag.getInt(Objects.requireNonNull(name));
         }
 
         @Override
-        public long getLong(final String name) {
-            return tag.getLong(name);
+        public long getLong(@Nullable final String name) {
+            return tag.getLong(Objects.requireNonNull(name));
         }
 
         @Override
-        public float getFloat(final String name) {
-            return tag.getFloat(name);
+        public float getFloat(@Nullable final String name) {
+            return tag.getFloat(Objects.requireNonNull(name));
         }
 
         @Override
-        public double getDouble(final String name) {
-            return tag.getDouble(name);
+        public double getDouble(@Nullable final String name) {
+            return tag.getDouble(Objects.requireNonNull(name));
         }
 
         @SuppressWarnings({"unchecked", "rawtypes"})
         @Nullable
         @Override
-        public Object getObject(final String name, final Class<?> type, @Nullable final Object into) throws SerializationException {
-            if (isNull(name)) {
+        public Object getObject(@Nullable final String name, @Nullable final Class<?> type, @Nullable final Object into) throws SerializationException {
+            final String actualName = Objects.requireNonNull(name);
+            if (isNull(actualName)) {
                 return null;
             }
 
             // Do not overwrite values which were not serialized before.
-            if (!tag.contains(name)) {
+            if (!tag.contains(actualName)) {
                 return into;
             }
 
-            if (type.isArray()) {
-                final Tag arrayTag = tag.get(name);
-                assert arrayTag != null;
-                return getArray(arrayTag, type, into);
-            } else if (type.isEnum()) {
-                return Enum.valueOf((Class) type, tag.getString(name));
-            } else if (type == String.class) {
-                return tag.getString(name);
-            } else if (type == UUID.class) {
-                return tag.getCompound(name).getUUID(name);
+            final Class<?> actualType = Objects.requireNonNull(type);
+            if (actualType.isArray()) {
+                final Tag arrayTag = tag.get(actualName);
+                if (arrayTag == null) {
+                    return into;
+                }
+                return getArray(arrayTag, actualType, into);
+            } else if (actualType.isEnum()) {
+                return Enum.valueOf((Class) actualType, tag.getString(actualName));
+            } else if (actualType == String.class) {
+                return tag.getString(actualName);
+            } else if (actualType == UUID.class) {
+                return tag.getCompound(actualName).getUUID(actualName);
             } else {
-                final CompoundTag valueTag = tag.getCompound(name);
-                return Ceres.getSerializer(type).deserialize(new Deserializer(valueTag), (Class) type, into);
+                final CompoundTag valueTag = tag.getCompound(actualName);
+                return Ceres.getSerializer(actualType).deserialize(new Deserializer(valueTag), (Class) actualType, into);
             }
         }
 
@@ -339,8 +348,8 @@ public final class NBTSerialization {
         }
 
         @Override
-        public boolean exists(final String name) {
-            return tag.contains(name);
+        public boolean exists(@Nullable final String name) {
+            return tag.contains(Objects.requireNonNull(name));
         }
 
         private boolean isNull(final String name) {

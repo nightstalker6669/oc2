@@ -14,7 +14,10 @@ import li.cil.oc2.common.bus.device.rpc.TypeNameRPCDevice;
 import li.cil.oc2.common.bus.device.util.BlockDeviceInfo;
 import li.cil.oc2.common.bus.device.util.Devices;
 import li.cil.oc2.common.capabilities.Capabilities;
+import li.cil.oc2.common.registry.RegistryView;
+import li.cil.oc2.common.util.InvalidatableUtils;
 import li.cil.oc2.common.util.LevelUtils;
+import li.cil.oc2.common.util.LazyValue;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -22,8 +25,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.registries.IForgeRegistry;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -39,13 +40,13 @@ public abstract class AbstractBlockDeviceBusElement extends AbstractGroupingDevi
     // DeviceBusElement
 
     @Override
-    public Optional<Collection<LazyOptional<DeviceBusElement>>> getNeighbors() {
+    public Optional<Collection<Invalidatable<DeviceBusElement>>> getNeighbors() {
         final LevelAccessor level = getLevel();
         if (level == null || level.isClientSide()) {
             return Optional.empty();
         }
 
-        final ArrayList<LazyOptional<DeviceBusElement>> neighbors = new ArrayList<>();
+        final ArrayList<Invalidatable<DeviceBusElement>> neighbors = new ArrayList<>();
         for (final Direction neighborDirection : Constants.DIRECTIONS) {
             if (!canScanContinueTowards(neighborDirection)) {
                 continue;
@@ -63,9 +64,9 @@ public abstract class AbstractBlockDeviceBusElement extends AbstractGroupingDevi
                 continue;
             }
 
-            final LazyOptional<DeviceBusElement> capability = Capabilities.getCapability(blockEntity, Capabilities.deviceBusElement(), neighborDirection.getOpposite());
+            final LazyValue<DeviceBusElement> capability = Capabilities.getCapability(blockEntity, Capabilities.deviceBusElement(), neighborDirection.getOpposite());
             if (capability.isPresent()) {
-                neighbors.add(capability);
+                neighbors.add(InvalidatableUtils.fromLazyValue(capability));
             }
         }
 
@@ -161,8 +162,11 @@ public abstract class AbstractBlockDeviceBusElement extends AbstractGroupingDevi
     @Override
     protected void onEntryRemoved(final String dataKey, final CompoundTag tag, @Nullable final BlockDeviceQuery query) {
         super.onEntryRemoved(dataKey, tag, query);
-        assert query != null : "Passed null query for block device bus element.";
-        final IForgeRegistry<BlockDeviceProvider> registry = Providers.blockDeviceProviderRegistry();
+        if (query == null) {
+            return;
+        }
+
+        final RegistryView<BlockDeviceProvider> registry = Providers.blockDeviceProviderRegistry();
         final BlockDeviceProvider provider = registry.getValue(ResourceLocation.parse(dataKey));
         if (provider != null) {
             provider.unmount(query, tag);
@@ -203,7 +207,7 @@ public abstract class AbstractBlockDeviceBusElement extends AbstractGroupingDevi
 
             // Grab these while the device info has not yet been invalidated. We still need to access
             // these even after the device has been invalidated to clean up.
-            this.dataKey = optionalKey(deviceInfo.get().provider).orElse(null);
+            this.dataKey = optionalKey(Providers.blockDeviceProviderRegistry(), deviceInfo.get().provider).orElse(null);
             this.device = deviceInfo.get().device;
         }
 
@@ -243,7 +247,7 @@ public abstract class AbstractBlockDeviceBusElement extends AbstractGroupingDevi
         }
 
         @Override
-        public boolean equals(final Object o) {
+        public boolean equals(@Nullable final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             final BlockEntry that = (BlockEntry) o;

@@ -10,7 +10,7 @@ import li.cil.oc2.common.bus.device.provider.util.AbstractItemDeviceProvider;
 import li.cil.oc2.common.bus.device.rpc.item.FileImportExportCardItemDevice;
 import li.cil.oc2.common.capabilities.Capabilities;
 import li.cil.oc2.common.item.Items;
-import net.minecraftforge.common.util.LazyOptional;
+import li.cil.oc2.common.util.LazyValue;
 
 import java.util.Optional;
 
@@ -41,14 +41,14 @@ public final class FileImportExportCardItemDeviceProvider extends AbstractItemDe
 
     private Optional<TerminalUserProvider> getTerminalUserProvider(final ItemDeviceQuery query) {
         if (query.getContainerBlockEntity().isPresent()) {
-            final LazyOptional<TerminalUserProvider> capability = Capabilities.getCapability(query.getContainerBlockEntity().get(), Capabilities.terminalUserProvider(), null);
+            final LazyValue<TerminalUserProvider> capability = Capabilities.getCapability(query.getContainerBlockEntity().get(), Capabilities.terminalUserProvider(), null);
             if (capability.isPresent()) {
                 return capability.resolve();
             }
         }
 
         if (query.getContainerEntity().isPresent()) {
-            final LazyOptional<TerminalUserProvider> capability = Capabilities.getCapability(query.getContainerEntity().get(), Capabilities.terminalUserProvider(), null);
+            final LazyValue<TerminalUserProvider> capability = Capabilities.getCapability(query.getContainerEntity().get(), Capabilities.terminalUserProvider(), null);
             if (capability.isPresent()) {
                 return capability.resolve();
             }

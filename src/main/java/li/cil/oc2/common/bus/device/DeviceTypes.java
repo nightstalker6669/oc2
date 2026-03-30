@@ -4,16 +4,15 @@ package li.cil.oc2.common.bus.device;
 
 import li.cil.oc2.api.API;
 import li.cil.oc2.api.bus.device.DeviceType;
+import li.cil.oc2.common.registry.RegistryView;
 import li.cil.oc2.common.bus.device.util.DeviceTypeImpl;
 import li.cil.oc2.common.tags.ItemTags;
 import li.cil.oc2.common.util.RegistryUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.RegistryObject;
-import net.minecraftforge.registries.RegistryBuilder;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.function.Supplier;
 
@@ -24,14 +23,14 @@ public final class DeviceTypes {
 
     ///////////////////////////////////////////////////////////////////
 
-    public static final Supplier<IForgeRegistry<DeviceType>> DEVICE_TYPE_REGISTRY = DEVICE_TYPES.makeRegistry(DeviceType.class, RegistryBuilder::new);
-    public static final RegistryObject<DeviceType> MEMORY = register(ItemTags.DEVICES_MEMORY);
-    public static final RegistryObject<DeviceType> HARD_DRIVE = register(ItemTags.DEVICES_HARD_DRIVE);
-    public static final RegistryObject<DeviceType> FLASH_MEMORY = register(ItemTags.DEVICES_FLASH_MEMORY);
-    public static final RegistryObject<DeviceType> CARD = register(ItemTags.DEVICES_CARD);
-    public static final RegistryObject<DeviceType> ROBOT_MODULE = register(ItemTags.DEVICES_ROBOT_MODULE);
-    public static final RegistryObject<DeviceType> FLOPPY = register(ItemTags.DEVICES_FLOPPY);
-    public static final RegistryObject<DeviceType> NETWORK_TUNNEL = register(ItemTags.DEVICES_NETWORK_TUNNEL);
+    public static final Supplier<RegistryView<DeviceType>> DEVICE_TYPE_REGISTRY = RegistryUtils.makeRegistryView(DEVICE_TYPES);
+    public static final DeferredHolder<DeviceType, DeviceType> MEMORY = register(ItemTags.DEVICES_MEMORY);
+    public static final DeferredHolder<DeviceType, DeviceType> HARD_DRIVE = register(ItemTags.DEVICES_HARD_DRIVE);
+    public static final DeferredHolder<DeviceType, DeviceType> FLASH_MEMORY = register(ItemTags.DEVICES_FLASH_MEMORY);
+    public static final DeferredHolder<DeviceType, DeviceType> CARD = register(ItemTags.DEVICES_CARD);
+    public static final DeferredHolder<DeviceType, DeviceType> ROBOT_MODULE = register(ItemTags.DEVICES_ROBOT_MODULE);
+    public static final DeferredHolder<DeviceType, DeviceType> FLOPPY = register(ItemTags.DEVICES_FLOPPY);
+    public static final DeferredHolder<DeviceType, DeviceType> NETWORK_TUNNEL = register(ItemTags.DEVICES_NETWORK_TUNNEL);
 
     ///////////////////////////////////////////////////////////////////
 
@@ -40,7 +39,7 @@ public final class DeviceTypes {
 
     ///////////////////////////////////////////////////////////////////
 
-    private static RegistryObject<DeviceType> register(final TagKey<Item> tag) {
+    private static DeferredHolder<DeviceType, DeviceType> register(final TagKey<Item> tag) {
         final String id = tag.location().getPath().replaceFirst("^devices/", "");
         return DEVICE_TYPES.register(id, () -> new DeviceTypeImpl(
             tag,

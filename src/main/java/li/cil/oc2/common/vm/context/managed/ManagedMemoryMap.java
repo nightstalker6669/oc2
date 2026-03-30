@@ -28,22 +28,22 @@ final class ManagedMemoryMap implements MemoryMap {
     }
 
     @Override
-    public boolean addDevice(final long address, final MemoryMappedDevice device) {
+    public boolean addDevice(final long address, @Nullable final MemoryMappedDevice device) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void removeDevice(final MemoryMappedDevice device) {
+    public void removeDevice(@Nullable final MemoryMappedDevice device) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Optional<MappedMemoryRange> getMemoryRange(final MemoryMappedDevice device) {
+    public Optional<MappedMemoryRange> getMemoryRange(@Nullable final MemoryMappedDevice device) {
         return memoryMap.getMemoryRange(device);
     }
 
     @Override
-    public Optional<MappedMemoryRange> getMemoryRange(final MemoryRange memoryRange) {
+    public Optional<MappedMemoryRange> getMemoryRange(@Nullable final MemoryRange memoryRange) {
         return memoryMap.getMemoryRange(memoryRange);
     }
 
@@ -54,7 +54,7 @@ final class ManagedMemoryMap implements MemoryMap {
     }
 
     @Override
-    public void setDirty(final MemoryRange range, final int offset) {
+    public void setDirty(@Nullable final MemoryRange range, final int offset) {
         if (!isValid) {
             throw new IllegalStateException();
         }

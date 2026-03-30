@@ -7,7 +7,6 @@ import li.cil.oc2.common.block.BusCableBlock;
 import li.cil.oc2.common.blockentity.BusCableBlockEntity;
 import li.cil.oc2.common.util.ItemStackUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.renderer.block.model.BakedQuad;
@@ -23,6 +22,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.util.RandomSource;
+import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 import net.neoforged.neoforge.client.model.IDynamicBakedModel;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.neoforge.client.model.data.ModelProperty;
@@ -47,8 +47,8 @@ public record BusCableBakedModel(
     public List<BakedQuad> getQuads(@Nullable final BlockState state, @Nullable final Direction side, final RandomSource rand, final ModelData extraData, @Nullable final RenderType renderType) {
         if (extraData.has(BUS_CABLE_FACADE_PROPERTY)) {
             final BusCableFacade facade = extraData.get(BUS_CABLE_FACADE_PROPERTY);
-            if (facade != null && (renderType == null || ItemBlockRenderTypes.getRenderType(facade.blockState, false).equals(renderType))) {
-                return facade.model.getQuads(facade.blockState, side, rand, facade.data, renderType);
+            if (facade != null && (renderType == null || facade.model.getRenderTypes(facade.blockState, rand, facade.data).contains(renderType))) {
+                return getQuadsNullable(facade.model, facade.blockState, side, rand, facade.data, renderType);
             } else {
                 return Collections.emptyList();
             }
@@ -61,18 +61,34 @@ public record BusCableBakedModel(
         for (int i = 0; i < Constants.AXES.length; i++) {
             final Direction.Axis axis = Constants.AXES[i];
             if (isStraightAlongAxis(state, axis)) {
-                return straightModelByAxis[i].getQuads(state, side, rand, extraData, renderType);
+                return getQuadsNullable(straightModelByAxis[i], state, side, rand, extraData, renderType);
             }
         }
 
-        final ArrayList<BakedQuad> quads = new ArrayList<>(proxy.getQuads(state, side, rand, extraData, renderType));
+        final ArrayList<BakedQuad> quads = new ArrayList<>(getQuadsNullable(proxy, state, side, rand, extraData, renderType));
 
         final BusCableSupportSide supportSide = extraData.get(BUS_CABLE_SUPPORT_PROPERTY);
         if (supportSide != null) {
-            quads.addAll(supportModelByFace[supportSide.value.get3DDataValue()].getQuads(state, side, rand, extraData, renderType));
+            quads.addAll(getQuadsNullable(supportModelByFace[supportSide.value.get3DDataValue()], state, side, rand, extraData, renderType));
         }
 
         return quads;
+    }
+
+    @Override
+    public ChunkRenderTypeSet getRenderTypes(final BlockState state, final RandomSource rand, final ModelData data) {
+        if (data.has(BUS_CABLE_FACADE_PROPERTY)) {
+            final BusCableFacade facade = data.get(BUS_CABLE_FACADE_PROPERTY);
+            if (facade != null) {
+                return facade.model.getRenderTypes(facade.blockState, rand, facade.data);
+            }
+        }
+
+        if (state == null || !state.getValue(BusCableBlock.HAS_CABLE)) {
+            return ChunkRenderTypeSet.none();
+        }
+
+        return ChunkRenderTypeSet.of(RenderType.solid());
     }
 
     @Override
@@ -158,6 +174,11 @@ public record BusCableBakedModel(
     private static boolean isNeighborInDirectionSolid(final BlockAndTintGetter level, final BlockPos pos, final Direction direction) {
         final BlockPos neighborPos = pos.relative(direction);
         return level.getBlockState(neighborPos).isFaceSturdy(level, neighborPos, direction.getOpposite());
+    }
+
+    @SuppressWarnings("null")
+    private static List<BakedQuad> getQuadsNullable(final BakedModel model, @Nullable final BlockState state, @Nullable final Direction side, final RandomSource rand, final ModelData extraData, @Nullable final RenderType renderType) {
+        return model.getQuads(state, side, rand, extraData, renderType);
     }
 
     private static boolean isStraightAlongAxis(final BlockState state, final Direction.Axis axis) {

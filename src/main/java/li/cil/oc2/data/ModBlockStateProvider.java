@@ -14,7 +14,7 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.client.model.generators.*;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
 
 public final class ModBlockStateProvider extends BlockStateProvider {
     private static final ResourceLocation CABLE_MODEL = ResourceLocation.fromNamespaceAndPath(API.MOD_ID, "block/cable_base");
@@ -170,17 +170,17 @@ public final class ModBlockStateProvider extends BlockStateProvider {
             .end();
     }
 
-    private <T extends Block> ItemModelBuilder horizontalBlock(final RegistryObject<T> block, final RegistryObject<Item> item, final ResourceLocation modelFileLocation) {
+    private <T extends Block> ItemModelBuilder horizontalBlock(final DeferredHolder<Block, T> block, final DeferredHolder<Item, ? extends Item> item, final ResourceLocation modelFileLocation) {
         horizontalBlock(block.get(), models().getExistingFile(modelFileLocation));
         return itemModels().getBuilder(item.getId().getPath()).parent(models().getExistingFile(block.getId()));
     }
 
-    private <T extends Block> ItemModelBuilder horizontalFaceBlock(final RegistryObject<T> block, final RegistryObject<Item> item, final ResourceLocation modelFileLocation) {
+    private <T extends Block> ItemModelBuilder horizontalFaceBlock(final DeferredHolder<Block, T> block, final DeferredHolder<Item, ? extends Item> item, final ResourceLocation modelFileLocation) {
         horizontalFaceBlock(block.get(), models().getExistingFile(modelFileLocation));
         return itemModels().getBuilder(item.getId().getPath()).parent(models().getExistingFile(block.getId()));
     }
 
-    private <T extends Block> void simpleBlock(final RegistryObject<T> block, final RegistryObject<Item> item) {
+    private <T extends Block> void simpleBlock(final DeferredHolder<Block, T> block, final DeferredHolder<Item, ? extends Item> item) {
         simpleBlock(block.get());
         itemModels().getBuilder(item.getId().getPath()).parent(models().getExistingFile(block.getId()));
     }

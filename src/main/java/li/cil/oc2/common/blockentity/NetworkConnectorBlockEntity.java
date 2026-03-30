@@ -29,7 +29,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.LazyOptional;
+import li.cil.oc2.common.util.LazyValue;
 
 import javax.annotation.Nullable;
 import java.time.Duration;
@@ -62,7 +62,7 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
 
     private final NetworkConnectorNetworkInterface networkInterface = new NetworkConnectorNetworkInterface();
 
-    private LazyOptional<NetworkInterface> adjacentInterface = LazyOptional.empty();
+    private LazyValue<NetworkInterface> adjacentInterface = LazyValue.empty();
     private boolean isAdjacentInterfaceDirty = true;
 
     private final HashSet<BlockPos> connectorPositions = new HashSet<>();
@@ -138,6 +138,7 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
         connectors.remove(pos);
 
         if (ownedCables.remove(pos)) {
+            final Level level = this.level;
             if (level != null) {
                 final Vec3 middle = Vec3.atCenterOf(getBlockPos().offset(pos)).scale(0.5f);
                 ItemStackUtils.spawnAsEntity(level, middle, new ItemStack(Items.NETWORK_CABLE.get()));
@@ -306,9 +307,12 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
     ///////////////////////////////////////////////////////////////////
 
     private void resolveLocalInterface() {
-        assert level != null;
+        final Level level = this.level;
+        if (level == null) {
+            return;
+        }
 
-        adjacentInterface = LazyOptional.empty();
+        adjacentInterface = LazyValue.empty();
 
         if (!isValid()) {
             return;
@@ -329,7 +333,7 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
 
         adjacentInterface = Capabilities.getCapability(blockEntity, Capabilities.networkInterface(), facing);
         if (adjacentInterface.isPresent()) {
-            LazyOptionalUtils.addWeakListener(adjacentInterface, this, (connector, unused) -> connector.setNeighborChanged());
+            LazyValueUtils.addWeakListener(adjacentInterface, this, (connector, unused) -> connector.setNeighborChanged());
         }
     }
 
@@ -340,6 +344,7 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
             return;
         }
 
+        final Level level = this.level;
         if (level == null || level.isClientSide()) {
             return;
         }

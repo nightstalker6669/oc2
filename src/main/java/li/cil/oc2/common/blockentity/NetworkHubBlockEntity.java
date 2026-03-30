@@ -6,13 +6,13 @@ import li.cil.oc2.api.capabilities.NetworkInterface;
 import li.cil.oc2.common.Config;
 import li.cil.oc2.common.Constants;
 import li.cil.oc2.common.capabilities.Capabilities;
-import li.cil.oc2.common.util.LazyOptionalUtils;
+import li.cil.oc2.common.util.LazyValue;
+import li.cil.oc2.common.util.LazyValueUtils;
 import li.cil.oc2.common.util.LevelUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.util.LazyOptional;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -98,6 +98,7 @@ public final class NetworkHubBlockEntity extends ModBlockEntity implements Netwo
 
         haveAdjacentBlocksChanged = false;
 
+        final var level = this.level;
         if (level == null || level.isClientSide()) {
             return;
         }
@@ -106,10 +107,10 @@ public final class NetworkHubBlockEntity extends ModBlockEntity implements Netwo
         for (final Direction side : Constants.DIRECTIONS) {
             final BlockEntity neighborBlockEntity = LevelUtils.getBlockEntityIfChunkExists(level, pos.relative(side));
             if (neighborBlockEntity != null) {
-                final LazyOptional<NetworkInterface> optional = Capabilities.getCapability(neighborBlockEntity, Capabilities.networkInterface(), side.getOpposite());
+                final LazyValue<NetworkInterface> optional = Capabilities.getCapability(neighborBlockEntity, Capabilities.networkInterface(), side.getOpposite());
                 optional.ifPresent(adjacentInterface -> {
                     adjacentBlockInterfaces[side.get3DDataValue()] = adjacentInterface;
-                    LazyOptionalUtils.addWeakListener(optional, this, (hub, unused) -> hub.handleNeighborChanged());
+                    LazyValueUtils.addWeakListener(optional, this, (hub, unused) -> hub.handleNeighborChanged());
                 });
             }
         }

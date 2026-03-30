@@ -15,7 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.util.LazyOptional;
+import li.cil.oc2.common.util.LazyValue;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -222,7 +222,7 @@ public final class InventoryOperationsModuleDevice extends AbstractItemRPCDevice
         final AABB bounds = AABB.unitCubeFromLowerCorner(position.subtract(0.5, 0.5, 0.5));
         return entity.level().getEntities(entity, bounds).stream()
             .map(e -> Capabilities.getCapability(e, Capabilities.itemHandler(), side))
-            .filter(LazyOptional::isPresent)
+            .filter(LazyValue::isPresent)
             .map(c -> c.orElseThrow(AssertionError::new));
     }
 
@@ -233,7 +233,7 @@ public final class InventoryOperationsModuleDevice extends AbstractItemRPCDevice
             return Stream.empty();
         }
 
-        final LazyOptional<IItemHandler> capability = Capabilities.getCapability(blockEntity, Capabilities.itemHandler(), side);
+        final LazyValue<IItemHandler> capability = Capabilities.getCapability(blockEntity, Capabilities.itemHandler(), side);
         if (capability.isPresent()) {
             return Stream.of(capability.orElseThrow(AssertionError::new));
         }

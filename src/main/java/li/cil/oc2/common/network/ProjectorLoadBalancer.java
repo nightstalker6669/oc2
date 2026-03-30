@@ -159,19 +159,25 @@ public final class ProjectorLoadBalancer {
     }
 
     private static void removeProjectorInfo(final ProjectorInfo info) {
+        final ProjectorInfo lastSender = ProjectorLoadBalancer.lastSender;
+        if (lastSender == null) {
+            return;
+        }
+
         if (lastSender == info) {
             if (lastSender.next == lastSender) {
                 // Last element in list, clear list.
-                lastSender = null;
+                ProjectorLoadBalancer.lastSender = null;
             } else {
                 // Shift current entry to next.
-                lastSender = info.next;
+                ProjectorLoadBalancer.lastSender = info.next;
             }
         }
         info.remove();
     }
 
     private static void sendNextReadyPacket() {
+        ProjectorInfo lastSender = ProjectorLoadBalancer.lastSender;
         if (lastSender == null) {
             return;
         }
@@ -179,6 +185,7 @@ public final class ProjectorLoadBalancer {
         final ProjectorInfo start = lastSender;
         do {
             lastSender = lastSender.next;
+            ProjectorLoadBalancer.lastSender = lastSender;
             if (lastSender.sendIfReady()) {
                 return;
             }

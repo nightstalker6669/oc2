@@ -12,13 +12,11 @@ import li.cil.oc2.common.Config;
 import li.cil.oc2.common.blockentity.ModBlockEntity;
 import li.cil.oc2.common.energy.EnergyStorageItemStack;
 import li.cil.oc2.common.item.RobotItem;
+import li.cil.oc2.common.util.LazyValue;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.LazyOptional;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -30,39 +28,39 @@ import static li.cil.oc2.common.Constants.ENERGY_TAG_NAME;
 import static li.cil.oc2.common.Constants.MOD_TAG_NAME;
 
 public final class Capabilities {
-    public static Capability<IEnergyStorage> energyStorage() {
+    public static CapabilityRef<IEnergyStorage> energyStorage() {
         return CapabilityRegistry.ENERGY_STORAGE;
     }
 
-    public static Capability<IFluidHandler> fluidHandler() {
+    public static CapabilityRef<IFluidHandler> fluidHandler() {
         return CapabilityRegistry.FLUID_HANDLER;
     }
 
-    public static Capability<IItemHandler> itemHandler() {
+    public static CapabilityRef<IItemHandler> itemHandler() {
         return CapabilityRegistry.ITEM_HANDLER;
     }
 
-    public static Capability<DeviceBusElement> deviceBusElement() {
+    public static CapabilityRef<DeviceBusElement> deviceBusElement() {
         return CapabilityRegistry.DEVICE_BUS_ELEMENT;
     }
 
-    public static Capability<Device> device() {
+    public static CapabilityRef<Device> device() {
         return CapabilityRegistry.DEVICE;
     }
 
-    public static Capability<RedstoneEmitter> redstoneEmitter() {
+    public static CapabilityRef<RedstoneEmitter> redstoneEmitter() {
         return CapabilityRegistry.REDSTONE_EMITTER;
     }
 
-    public static Capability<NetworkInterface> networkInterface() {
+    public static CapabilityRef<NetworkInterface> networkInterface() {
         return CapabilityRegistry.NETWORK_INTERFACE;
     }
 
-    public static Capability<TerminalUserProvider> terminalUserProvider() {
+    public static CapabilityRef<TerminalUserProvider> terminalUserProvider() {
         return CapabilityRegistry.TERMINAL_USER_PROVIDER;
     }
 
-    public static Capability<Robot> robot() {
+    public static CapabilityRef<Robot> robot() {
         return CapabilityRegistry.ROBOT;
     }
 
@@ -75,51 +73,51 @@ public final class Capabilities {
         registry.accept(Robot.class);
     }
 
-    public static <T> LazyOptional<T> getCapability(@Nullable final BlockEntity blockEntity, final Capability<T> capability, @Nullable final Direction side) {
+    public static <T> LazyValue<T> getCapability(@Nullable final BlockEntity blockEntity, final CapabilityRef<T> capability, @Nullable final Direction side) {
         if (blockEntity instanceof final ModBlockEntity modBlockEntity) {
             return modBlockEntity.getCapability(capability, side);
         }
-        if (blockEntity instanceof final ICapabilityProvider provider) {
+        if (blockEntity instanceof final CapabilityProvider provider) {
             return provider.getCapability(capability, side);
         }
-        return LazyOptional.empty();
+        return LazyValue.empty();
     }
 
-    public static <T> LazyOptional<T> getCapability(@Nullable final Entity entity, final Capability<T> capability, @Nullable final Direction side) {
+    public static <T> LazyValue<T> getCapability(@Nullable final Entity entity, final CapabilityRef<T> capability, @Nullable final Direction side) {
         if (entity instanceof final li.cil.oc2.common.entity.Robot robotEntity) {
             return robotEntity.getCapability(capability, side);
         }
-        if (entity instanceof final ICapabilityProvider provider) {
+        if (entity instanceof final CapabilityProvider provider) {
             return provider.getCapability(capability, side);
         }
-        return LazyOptional.empty();
+        return LazyValue.empty();
     }
 
-    public static <T> LazyOptional<T> getCapability(final ItemStack stack, final Capability<T> capability) {
+    public static <T> LazyValue<T> getCapability(final ItemStack stack, final CapabilityRef<T> capability) {
         if (capability == energyStorage()) {
-            final IEnergyStorage storage = stack.getCapability(net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.ITEM, null);
+            final IEnergyStorage storage = stack.getCapability(net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.ITEM);
             if (storage != null) {
-                return LazyOptional.of(() -> storage).cast();
+                return LazyValue.of(() -> storage).cast();
             }
             if (stack.getItem() instanceof RobotItem) {
-                return LazyOptional.of(() -> new EnergyStorageItemStack(stack, Config.robotEnergyStorage, MOD_TAG_NAME, ENERGY_TAG_NAME)).cast();
+                return LazyValue.of(() -> new EnergyStorageItemStack(stack, Config.robotEnergyStorage, MOD_TAG_NAME, ENERGY_TAG_NAME)).cast();
             }
         }
 
         if (capability == itemHandler()) {
-            final IItemHandler handler = stack.getCapability(net.neoforged.neoforge.capabilities.Capabilities.ItemHandler.ITEM, null);
+            final IItemHandler handler = stack.getCapability(net.neoforged.neoforge.capabilities.Capabilities.ItemHandler.ITEM);
             if (handler != null) {
-                return LazyOptional.of(() -> handler).cast();
+                return LazyValue.of(() -> handler).cast();
             }
         }
 
         if (capability == fluidHandler()) {
-            final IFluidHandler handler = stack.getCapability(net.neoforged.neoforge.capabilities.Capabilities.FluidHandler.ITEM, null);
+            final IFluidHandler handler = stack.getCapability(net.neoforged.neoforge.capabilities.Capabilities.FluidHandler.ITEM);
             if (handler != null) {
-                return LazyOptional.of(() -> handler).cast();
+                return LazyValue.of(() -> handler).cast();
             }
         }
 
-        return LazyOptional.empty();
+        return LazyValue.empty();
     }
 }

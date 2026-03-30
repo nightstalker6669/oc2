@@ -4,12 +4,11 @@ package li.cil.oc2.common.bus.device.data;
 
 import li.cil.oc2.api.bus.device.data.Firmware;
 import li.cil.oc2.api.util.Registries;
+import li.cil.oc2.common.registry.RegistryView;
 import li.cil.oc2.common.util.RegistryUtils;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.RegistryBuilder;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import javax.annotation.Nullable;
 import java.util.function.Supplier;
@@ -20,11 +19,11 @@ public final class FirmwareRegistry {
 
     ///////////////////////////////////////////////////////////////////
 
-    private static final Supplier<IForgeRegistry<Firmware>> REGISTRY = INITIALIZER.makeRegistry(Firmware.class, RegistryBuilder::new);
+    private static final Supplier<RegistryView<Firmware>> REGISTRY = RegistryUtils.makeRegistryView(INITIALIZER);
 
     ///////////////////////////////////////////////////////////////////
 
-    public static final RegistryObject<Firmware> BUILDROOT = INITIALIZER.register("buildroot", BuildrootFirmware::new);
+    public static final DeferredHolder<Firmware, Firmware> BUILDROOT = INITIALIZER.register("buildroot", BuildrootFirmware::new);
 
     ///////////////////////////////////////////////////////////////////
 
@@ -33,7 +32,7 @@ public final class FirmwareRegistry {
 
     @Nullable
     public static ResourceLocation getKey(final Firmware firmware) {
-        return firmware.getRegistryName();
+        return REGISTRY.get().getKey(firmware);
     }
 
     @Nullable

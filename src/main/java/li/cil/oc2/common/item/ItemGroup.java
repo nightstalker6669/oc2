@@ -12,13 +12,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class ItemGroup {
     private static final DeferredRegister<CreativeModeTab> TABS = RegistryUtils.getInitializerFor(Registries.CREATIVE_MODE_TAB);
 
-    public static final RegistryObject<CreativeModeTab> COMMON = TABS.register("common", () ->
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> COMMON = TABS.register("common", () ->
         CreativeModeTab.builder()
             .title(Component.translatable("itemGroup." + API.MOD_ID + ".common"))
             .icon(() -> new ItemStack(Items.COMPUTER.get()))
@@ -77,31 +77,31 @@ public final class ItemGroup {
 
     private static void addFilled(final CreativeModeTab.Output output, final BusInterfaceItem item) {
         final NonNullList<ItemStack> items = NonNullList.create();
-        item.fillItemCategory(COMMON.get(), items);
+        item.appendCreativeTabItems(items);
         items.forEach(output::accept);
     }
 
     private static void addFilled(final CreativeModeTab.Output output, final ChargerItem item) {
         final NonNullList<ItemStack> items = NonNullList.create();
-        item.fillItemCategory(COMMON.get(), items);
+        item.appendCreativeTabItems(items);
         items.forEach(output::accept);
     }
 
     private static void addFilled(final CreativeModeTab.Output output, final ComputerBlock block) {
         final NonNullList<ItemStack> items = NonNullList.create();
-        block.fillItemCategory(COMMON.get(), items);
+        block.appendCreativeTabItems(items);
         items.forEach(output::accept);
     }
 
     private static void addFilled(final CreativeModeTab.Output output, final RobotItem item) {
         final NonNullList<ItemStack> items = NonNullList.create();
-        item.fillItemCategory(COMMON.get(), items);
+        item.appendCreativeTabItems(items);
         items.forEach(output::accept);
     }
 
     private static void addFilled(final CreativeModeTab.Output output, final HardDriveWithExternalDataItem item) {
         final NonNullList<ItemStack> items = NonNullList.create();
-        item.fillItemCategory(COMMON.get(), items);
+        item.appendCreativeTabItems(items);
         items.forEach(output::accept);
     }
 

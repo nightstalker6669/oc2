@@ -212,7 +212,10 @@ public final class ServerScheduler {
 
     private record ScheduledRunnable(int tick, Runnable runnable) implements Comparable<ScheduledRunnable> {
         @Override
-        public int compareTo(final ServerScheduler.ScheduledRunnable o) {
+        public int compareTo(@Nullable final ServerScheduler.ScheduledRunnable o) {
+            if (o == null) {
+                throw new NullPointerException();
+            }
             return Integer.compare(tick, o.tick);
         }
     }

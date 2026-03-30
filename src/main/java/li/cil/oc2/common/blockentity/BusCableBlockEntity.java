@@ -34,7 +34,7 @@ import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
-import net.minecraftforge.common.util.LazyOptional;
+import li.cil.oc2.common.util.LazyValue;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
@@ -78,6 +78,7 @@ public final class BusCableBlockEntity extends ModBlockEntity {
     }
 
     public void setInterfaceName(final Direction side, final String name) {
+        final Level level = this.level;
         if (level == null) {
             return;
         }
@@ -106,6 +107,7 @@ public final class BusCableBlockEntity extends ModBlockEntity {
             return FacadeType.NOT_A_BLOCK;
         }
 
+        final Level level = this.level;
         if (level == null ||
             state.getRenderShape() != RenderShape.MODEL ||
             !state.isSolidRender(level, getBlockPos()) ||
@@ -121,6 +123,7 @@ public final class BusCableBlockEntity extends ModBlockEntity {
     }
 
     public void setFacade(ItemStack stack) {
+        final Level level = this.level;
         if (level == null) {
             return;
         }
@@ -148,6 +151,7 @@ public final class BusCableBlockEntity extends ModBlockEntity {
     }
 
     public void removeFacade() {
+        final Level level = this.level;
         if (level == null) {
             return;
         }
@@ -291,22 +295,25 @@ public final class BusCableBlockEntity extends ModBlockEntity {
 
     private void scheduleBusScanInAdjacentBusElements() {
         // This is called from onLoad, so we cannot access neighbors yet.
-        assert level != null;
+        final Level level = this.level;
+        if (level == null) {
+            return;
+        }
         ServerScheduler.schedule(level, () -> {
             if (!isValid()) {
                 return;
             }
 
-            final Level level = requireNonNull(getLevel());
+            final Level currentLevel = requireNonNull(getLevel());
             final BlockPos pos = getBlockPos();
             for (final Direction direction : Constants.DIRECTIONS) {
                 final BlockPos neighborPos = pos.relative(direction);
-                final BlockEntity blockEntity = LevelUtils.getBlockEntityIfChunkExists(level, neighborPos);
+                final BlockEntity blockEntity = LevelUtils.getBlockEntityIfChunkExists(currentLevel, neighborPos);
                 if (blockEntity == null) {
                     continue;
                 }
 
-                final LazyOptional<DeviceBusElement> capability = Capabilities.getCapability(blockEntity, Capabilities.deviceBusElement(), direction.getOpposite());
+                final LazyValue<DeviceBusElement> capability = Capabilities.getCapability(blockEntity, Capabilities.deviceBusElement(), direction.getOpposite());
                 capability.ifPresent(DeviceBus::scheduleScan);
             }
         });
@@ -424,6 +431,7 @@ public final class BusCableBlockEntity extends ModBlockEntity {
         }
 
         private void addListener() {
+            final Level level = BusCableBlockEntity.this.level;
             if (level != null && !hasRegisteredListener) {
                 ServerScheduler.subscribeOnLoad(level, chunkPos, onChunkLoadedStateChanged);
                 ServerScheduler.subscribeOnUnload(level, chunkPos, onChunkLoadedStateChanged);
@@ -432,6 +440,7 @@ public final class BusCableBlockEntity extends ModBlockEntity {
         }
 
         private void removeListener() {
+            final Level level = BusCableBlockEntity.this.level;
             if (level != null && hasRegisteredListener) {
                 ServerScheduler.unsubscribeOnLoad(level, chunkPos, onChunkLoadedStateChanged);
                 ServerScheduler.unsubscribeOnUnload(level, chunkPos, onChunkLoadedStateChanged);

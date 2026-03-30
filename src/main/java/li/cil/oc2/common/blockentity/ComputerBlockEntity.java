@@ -7,6 +7,7 @@ import li.cil.oc2.api.bus.device.Device;
 import li.cil.oc2.api.bus.device.DeviceTypes;
 import li.cil.oc2.api.bus.device.provider.ItemDeviceQuery;
 import li.cil.oc2.api.capabilities.TerminalUserProvider;
+import li.cil.oc2.api.util.Invalidatable;
 import li.cil.oc2.client.audio.LoopingSoundManager;
 import li.cil.oc2.common.Config;
 import li.cil.oc2.common.block.ComputerBlock;
@@ -19,6 +20,7 @@ import li.cil.oc2.common.container.ComputerInventoryContainer;
 import li.cil.oc2.common.container.ComputerTerminalContainer;
 import li.cil.oc2.common.energy.FixedEnergyStorage;
 import li.cil.oc2.common.network.Network;
+import li.cil.oc2.common.network.message.AbstractMessage;
 import li.cil.oc2.common.network.message.ComputerBootErrorMessage;
 import li.cil.oc2.common.network.message.ComputerBusStateMessage;
 import li.cil.oc2.common.network.message.ComputerRunStateMessage;
@@ -36,9 +38,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.LazyOptional;
+import li.cil.oc2.common.capabilities.CapabilityProvider;
+import li.cil.oc2.common.capabilities.CapabilityRef;
+import li.cil.oc2.common.util.LazyValue;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -140,27 +142,27 @@ public final class ComputerBlockEntity extends ModBlockEntity implements Termina
 
     @NotNull
     @Override
-    public <T> LazyOptional<T> getCapability(final Capability<T> capability, @Nullable final Direction side) {
+    public <T> LazyValue<T> getCapability(final CapabilityRef<T> capability, @Nullable final Direction side) {
         if (!isValid()) {
-            return LazyOptional.empty();
+            return LazyValue.empty();
         }
 
-        final LazyOptional<T> optional = super.getCapability(capability, side);
+        final LazyValue<T> optional = super.getCapability(capability, side);
         if (optional.isPresent()) {
             return optional;
         }
 
         final Direction localSide = HorizontalBlockUtils.toLocal(getBlockState(), side);
         for (final Device device : virtualMachine.busController.getDevices()) {
-            if (device instanceof final ICapabilityProvider capabilityProvider) {
-                final LazyOptional<T> value = capabilityProvider.getCapability(capability, localSide);
+            if (device instanceof final CapabilityProvider capabilityProvider) {
+                final LazyValue<T> value = capabilityProvider.getCapability(capability, localSide);
                 if (value.isPresent()) {
                     return value;
                 }
             }
         }
 
-        return LazyOptional.empty();
+        return LazyValue.empty();
     }
 
     @Override
@@ -170,6 +172,7 @@ public final class ComputerBlockEntity extends ModBlockEntity implements Termina
 
     @Override
     public void serverTick() {
+        final var level = this.level;
         if (level == null) {
             return;
         }
@@ -200,8 +203,9 @@ public final class ComputerBlockEntity extends ModBlockEntity implements Termina
         tag.put(TERMINAL_TAG_NAME, NBTSerialization.serialize(terminal));
         tag.putInt(AbstractVirtualMachine.BUS_STATE_TAG_NAME, virtualMachine.getBusState().ordinal());
         tag.putInt(AbstractVirtualMachine.RUN_STATE_TAG_NAME, virtualMachine.getRunState().ordinal());
-        if (virtualMachine.getBootError() != null) {
-            tag.putString(AbstractVirtualMachine.BOOT_ERROR_TAG_NAME, Component.Serializer.toJson(virtualMachine.getBootError(), getRegistries()));
+        final Component bootError = virtualMachine.getBootError();
+        if (bootError != null) {
+            tag.putString(AbstractVirtualMachine.BOOT_ERROR_TAG_NAME, Component.Serializer.toJson(bootError, getRegistries()));
         }
 
         return tag;
@@ -275,8 +279,10 @@ public final class ComputerBlockEntity extends ModBlockEntity implements Termina
     protected void loadServer() {
         super.loadServer();
 
-        assert level != null;
-
+        final var level = this.level;
+        if (level == null) {
+            return;
+        }
         virtualMachine.state.builtinDevices.rtcMinecraft.setLevel(level);
     }
 
@@ -302,7 +308,7 @@ public final class ComputerBlockEntity extends ModBlockEntity implements Termina
 
     ///////////////////////////////////////////////////////////////////
 
-    private <T> void sendToClientsTrackingComputer(final T message) {
+    private <T extends AbstractMessage> void sendToClientsTrackingComputer(final T message) {
         if (chunk != null) {
             Network.sendToClientsTrackingChunk(message, chunk);
         }
@@ -323,6 +329,7 @@ public final class ComputerBlockEntity extends ModBlockEntity implements Termina
         @Override
         protected void onChanged() {
             super.onChanged();
+            final var level = ComputerBlockEntity.this.level;
             if (level != null && !level.isClientSide()) {
                 virtualMachine.busController.scheduleBusScan();
                 ChunkUtils.setLazyUnsaved(level, getBlockPos());
@@ -349,7 +356,10 @@ public final class ComputerBlockEntity extends ModBlockEntity implements Termina
         }
 
         public void addOwnDevices() {
-            assert level != null;
+            final var level = ComputerBlockEntity.this.level;
+            if (level == null) {
+                return;
+            }
 
             collectDevices(level, getPosition(), null).ifPresent(result -> {
                 for (final BlockEntry info : result.getEntries()) {
@@ -360,12 +370,12 @@ public final class ComputerBlockEntity extends ModBlockEntity implements Termina
         }
 
         @Override
-        public Optional<Collection<LazyOptional<DeviceBusElement>>> getNeighbors() {
+        public Optional<Collection<Invalidatable<DeviceBusElement>>> getNeighbors() {
             return super.getNeighbors().map(neighbors -> {
                 // If we have valid neighbors (complete bus) also add a connection to the bus
                 // element hosting our item devices.
-                final ArrayList<LazyOptional<DeviceBusElement>> list = new ArrayList<>(neighbors);
-                list.add(LazyOptional.of(() -> deviceItems.busElement));
+                final ArrayList<Invalidatable<DeviceBusElement>> list = new ArrayList<>(neighbors);
+                list.add(Invalidatable.of(deviceItems.busElement));
                 return list;
             });
         }
@@ -425,6 +435,7 @@ public final class ComputerBlockEntity extends ModBlockEntity implements Termina
             super.setRunStateClient(value);
 
             if (value == VMRunState.RUNNING) {
+                final var level = ComputerBlockEntity.this.level;
                 if (!LoopingSoundManager.isPlaying(ComputerBlockEntity.this) && level != null) {
                     LoopingSoundManager.play(ComputerBlockEntity.this, SoundEvents.COMPUTER_RUNNING.get(), level.getRandom().nextInt(MAX_RUNNING_SOUND_DELAY));
                 }
@@ -435,7 +446,10 @@ public final class ComputerBlockEntity extends ModBlockEntity implements Termina
 
         @Override
         public void tick() {
-            assert level != null;
+            final var level = ComputerBlockEntity.this.level;
+            if (level == null) {
+                return;
+            }
 
             if (isRunning()) {
                 ChunkUtils.setLazyUnsaved(level, getBlockPos());

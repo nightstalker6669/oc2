@@ -4,12 +4,11 @@ package li.cil.oc2.common.bus.device.data;
 
 import li.cil.oc2.api.bus.device.data.BlockDeviceData;
 import li.cil.oc2.api.util.Registries;
+import li.cil.oc2.common.registry.RegistryView;
 import li.cil.oc2.common.util.RegistryUtils;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.RegistryBuilder;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import javax.annotation.Nullable;
 import java.util.function.Supplier;
@@ -20,11 +19,11 @@ public final class BlockDeviceDataRegistry {
 
     ///////////////////////////////////////////////////////////////////
 
-    private static final Supplier<IForgeRegistry<BlockDeviceData>> REGISTRY = INITIALIZER.makeRegistry(BlockDeviceData.class, RegistryBuilder::new);
+    private static final Supplier<RegistryView<BlockDeviceData>> REGISTRY = RegistryUtils.makeRegistryView(INITIALIZER);
 
     ///////////////////////////////////////////////////////////////////
 
-    public static final RegistryObject<BlockDeviceData> BUILDROOT = INITIALIZER.register("buildroot", BuildrootBlockDeviceData::new);
+    public static final DeferredHolder<BlockDeviceData, BlockDeviceData> BUILDROOT = INITIALIZER.register("buildroot", BuildrootBlockDeviceData::new);
 
     ///////////////////////////////////////////////////////////////////
 
@@ -33,7 +32,18 @@ public final class BlockDeviceDataRegistry {
 
     @Nullable
     public static ResourceLocation getKey(final BlockDeviceData data) {
-        return data.getRegistryName();
+        final ResourceLocation value = REGISTRY.get().getKey(data);
+        if (value != null) {
+            return value;
+        }
+        if (data instanceof final ResourceBlockDeviceData resourceData) {
+            return resourceData.getLocation();
+        }
+        return FileSystems.getBlockData().entrySet().stream()
+            .filter(entry -> entry.getValue() == data)
+            .map(java.util.Map.Entry::getKey)
+            .findFirst()
+            .orElse(null);
     }
 
     @Nullable

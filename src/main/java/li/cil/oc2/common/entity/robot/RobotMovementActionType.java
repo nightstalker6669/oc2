@@ -6,6 +6,8 @@ import li.cil.oc2.common.entity.Robot;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.Vec3;
 
+import javax.annotation.Nullable;
+
 public final class RobotMovementActionType extends AbstractRobotActionType {
     public RobotMovementActionType(final int id) {
         super(id);
@@ -19,7 +21,7 @@ public final class RobotMovementActionType extends AbstractRobotActionType {
     }
 
     @Override
-    public void performServer(final Robot robot, final AbstractRobotAction currentAction) {
+    public void performServer(final Robot robot, @Nullable final AbstractRobotAction currentAction) {
         if (!(currentAction instanceof RobotMovementAction)) {
             robot.getEntityData().set(Robot.TARGET_POSITION, robot.blockPosition());
         }

@@ -6,8 +6,16 @@ pluginManagement {
 }
 
 rootProject.name = "oc2-1.21.1-neoforge"
+final def isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
 
-def substituteLocal(final directoryName, final libraryName) {
+def substituteLocal = { final directoryName, final libraryName ->
+    // VS Code on Windows does not reliably import these sibling composite builds into the Java
+    // workspace, which leaves oc2 with dangling required-project entries. The main build has
+    // local JAR fallbacks for editor/runtime classpaths, so skip the composite includes here.
+    if (isWindows && ["sedna-mc", "ceres", "sedna", "buildroot"].contains(directoryName)) {
+        return
+    }
+
     final def path = new File("../${directoryName}");
     if (path.exists()) {
         println("Found local [${directoryName}] project, substituting...")

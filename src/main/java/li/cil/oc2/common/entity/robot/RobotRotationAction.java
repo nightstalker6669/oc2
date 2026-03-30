@@ -12,6 +12,7 @@ import net.minecraft.util.Mth;
 
 import javax.annotation.Nullable;
 import java.time.Duration;
+import java.util.Objects;
 
 public final class RobotRotationAction extends AbstractRobotAction {
     public static final float TARGET_EPSILON = 0.0001f;
@@ -50,20 +51,22 @@ public final class RobotRotationAction extends AbstractRobotAction {
     @Override
     public void initialize(final Robot robot) {
         if (target == null) {
-            target = robot.getDirection();
+            Direction currentTarget = robot.getDirection();
             if (direction != null) {
-                switch (direction) {
-                    case LEFT -> target = target.getCounterClockWise();
-                    case RIGHT -> target = target.getClockWise();
+                switch (Objects.requireNonNull(direction.resolve())) {
+                    case LEFT, left, l -> currentTarget = currentTarget.getCounterClockWise();
+                    case RIGHT, right, r -> currentTarget = currentTarget.getClockWise();
                 }
             }
+            target = currentTarget;
         }
 
-        robot.getEntityData().set(Robot.TARGET_DIRECTION, target);
+        robot.getEntityData().set(Robot.TARGET_DIRECTION, Objects.requireNonNull(target));
     }
 
     @Override
     public RobotActionResult perform(final Robot robot) {
+        final Direction target = this.target;
         if (target == null) {
             throw new IllegalStateException();
         }
@@ -93,9 +96,8 @@ public final class RobotRotationAction extends AbstractRobotAction {
     public void deserialize(final CompoundTag tag) {
         super.deserialize(tag);
 
-        direction = NBTUtils.getEnum(tag, DIRECTION_TAG_NAME, RotationDirection.class);
-        if (direction == null) direction = RotationDirection.LEFT;
-        direction = direction.resolve();
+        final RotationDirection direction = NBTUtils.getEnum(tag, DIRECTION_TAG_NAME, RotationDirection.class);
+        this.direction = (direction != null ? direction : RotationDirection.LEFT).resolve();
         if (tag.contains(TARGET_TAG_NAME, NBTTagIds.TAG_INT)) {
             target = NBTUtils.getEnum(tag, TARGET_TAG_NAME, Direction.class);
         }

@@ -4,6 +4,7 @@ package li.cil.oc2.common.vm.fs;
 
 import li.cil.sedna.fs.*;
 
+import javax.annotation.Nullable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -40,7 +41,10 @@ public final class LayeredFileSystem implements FileSystem {
     }
 
     @Override
-    public long getUniqueId(final Path path) throws IOException {
+    public long getUniqueId(@Nullable final Path path) throws IOException {
+        if (path == null) {
+            throw new FileNotFoundException();
+        }
         for (final FileSystem fileSystem : fileSystems) {
             if (fileSystem.exists(path)) {
                 return fileSystem.getUniqueId(path);
@@ -51,7 +55,10 @@ public final class LayeredFileSystem implements FileSystem {
     }
 
     @Override
-    public boolean exists(final Path path) {
+    public boolean exists(@Nullable final Path path) {
+        if (path == null) {
+            return false;
+        }
         for (final FileSystem fileSystem : fileSystems) {
             if (fileSystem.exists(path)) {
                 return true;
@@ -62,7 +69,10 @@ public final class LayeredFileSystem implements FileSystem {
     }
 
     @Override
-    public boolean isDirectory(final Path path) {
+    public boolean isDirectory(@Nullable final Path path) {
+        if (path == null) {
+            return false;
+        }
         for (final FileSystem fileSystem : fileSystems) {
             if (fileSystem.exists(path)) {
                 return fileSystem.isDirectory(path);
@@ -73,12 +83,15 @@ public final class LayeredFileSystem implements FileSystem {
     }
 
     @Override
-    public boolean isWritable(final Path path) {
+    public boolean isWritable(@Nullable final Path path) {
         return false;
     }
 
     @Override
-    public boolean isReadable(final Path path) {
+    public boolean isReadable(@Nullable final Path path) {
+        if (path == null) {
+            return false;
+        }
         for (final FileSystem fileSystem : fileSystems) {
             if (fileSystem.exists(path)) {
                 return fileSystem.isReadable(path);
@@ -89,7 +102,10 @@ public final class LayeredFileSystem implements FileSystem {
     }
 
     @Override
-    public boolean isExecutable(final Path path) {
+    public boolean isExecutable(@Nullable final Path path) {
+        if (path == null) {
+            return false;
+        }
         for (final FileSystem fileSystem : fileSystems) {
             if (fileSystem.exists(path)) {
                 return fileSystem.isExecutable(path);
@@ -100,7 +116,10 @@ public final class LayeredFileSystem implements FileSystem {
     }
 
     @Override
-    public BasicFileAttributes getAttributes(final Path path) throws IOException {
+    public BasicFileAttributes getAttributes(@Nullable final Path path) throws IOException {
+        if (path == null) {
+            throw new FileNotFoundException();
+        }
         for (final FileSystem fileSystem : fileSystems) {
             if (fileSystem.exists(path)) {
                 return fileSystem.getAttributes(path);
@@ -111,12 +130,15 @@ public final class LayeredFileSystem implements FileSystem {
     }
 
     @Override
-    public void mkdir(final Path path) throws IOException {
+    public void mkdir(@Nullable final Path path) throws IOException {
         throw new IOException();
     }
 
     @Override
-    public FileHandle open(final Path path, final int flags) throws IOException {
+    public FileHandle open(@Nullable final Path path, final int flags) throws IOException {
+        if (path == null) {
+            throw new FileNotFoundException();
+        }
         if ((flags & FileMode.WRITE) != 0) {
             throw new IOException();
         }
@@ -141,17 +163,17 @@ public final class LayeredFileSystem implements FileSystem {
     }
 
     @Override
-    public FileHandle create(final Path path, final int flags) throws IOException {
+    public FileHandle create(@Nullable final Path path, final int flags) throws IOException {
         throw new IOException();
     }
 
     @Override
-    public void unlink(final Path path) throws IOException {
+    public void unlink(@Nullable final Path path) throws IOException {
         throw new IOException();
     }
 
     @Override
-    public void rename(final Path oldPath, final Path newPath) throws IOException {
+    public void rename(@Nullable final Path oldPath, @Nullable final Path newPath) throws IOException {
         throw new IOException();
     }
 
@@ -175,12 +197,12 @@ public final class LayeredFileSystem implements FileSystem {
         }
 
         @Override
-        public int read(final long offset, final ByteBuffer buffer) throws IOException {
+        public int read(final long offset, @Nullable final ByteBuffer buffer) throws IOException {
             throw new IOException();
         }
 
         @Override
-        public int write(final long offset, final ByteBuffer buffer) throws IOException {
+        public int write(final long offset, @Nullable final ByteBuffer buffer) throws IOException {
             throw new IOException();
         }
 

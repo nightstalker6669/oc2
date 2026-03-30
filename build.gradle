@@ -1,4 +1,6 @@
 import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.Locale
 
 plugins {
@@ -70,9 +72,29 @@ def resolveNewestLocalJar(final String path) {
 
     return jars ? jars.first() : null
 }
+def stageLocalJar(final String sourcePath, final String stagedName) {
+    final def source = resolveNewestLocalJar(sourcePath)
+    if (source == null) {
+        return null
+    }
+
+    final def directory = file(".gradle/local-editor-libs")
+    final def target = new File(directory, stagedName)
+    if (!target.exists() || target.length() != source.length() || target.lastModified() != source.lastModified()) {
+        directory.mkdirs()
+        Files.copy(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)
+    }
+
+    return target
+}
 final def localCeresJar = resolveNewestLocalJar("../ceres/build/libs")
 final def localSednaJar = resolveNewestLocalJar("../sedna/build/libs")
+final def localSednaMcJar = resolveNewestLocalJar("../sedna-mc/build/libs")
+final def isWindows = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("windows")
 final def localBuildrootJar = resolveNewestLocalJar("../buildroot/build/libs")
+final def localBuildrootEditorJar = isWindows
+    ? stageLocalJar("../buildroot/build/libs", "sedna-buildroot-editor.jar")
+    : localBuildrootJar
 final def requestedTaskNames = gradle.startParameter.taskNames.collect { it.toLowerCase(Locale.ROOT) }
 final def hasClientRunRequested = requestedTaskNames.any { it.contains("runclient") }
 final def clientRunConfigDir = layout.projectDirectory.dir("run/config").asFile
@@ -152,27 +174,47 @@ dependencies {
     implementation "net.neoforged:neoforge:${neo_version}"
     // Local development uses the base libraries directly. Runtime testing still expects a
     // NeoForge Sedna mod to be supplied via an included build or external runtime setup.
-    compileOnly "li.cil.ceres:ceres:0.0.4"
-    compileOnly "li.cil.sedna:sedna:2.0.8"
-    compileOnly "li.cil.sedna:sedna-buildroot:0.0.8"
-    runs("li.cil.ceres:ceres:0.0.4") { transitive = false }
-    runs("li.cil.sedna:sedna:2.0.8") { transitive = false }
-    runs("li.cil.sedna:sedna-buildroot:0.0.8") { transitive = false }
-    testImplementation "li.cil.ceres:ceres:0.0.4"
-    testImplementation "li.cil.sedna:sedna:2.0.8"
-    testImplementation "li.cil.sedna:sedna-buildroot:0.0.8"
+    if (localCeresJar != null && isWindows) {
+        compileOnly files(localCeresJar)
+        runs files(localCeresJar)
+        testImplementation files(localCeresJar)
+    } else {
+        compileOnly "li.cil.ceres:ceres:0.0.4"
+        runs("li.cil.ceres:ceres:0.0.4") { transitive = false }
+        testImplementation "li.cil.ceres:ceres:0.0.4"
+    }
+    if (localSednaJar != null && isWindows) {
+        compileOnly files(localSednaJar)
+        runs files(localSednaJar)
+        testImplementation files(localSednaJar)
+    } else {
+        compileOnly "li.cil.sedna:sedna:2.0.8"
+        runs("li.cil.sedna:sedna:2.0.8") { transitive = false }
+        testImplementation "li.cil.sedna:sedna:2.0.8"
+    }
+    if (localBuildrootEditorJar != null && isWindows) {
+        // VS Code on Windows turns the buildroot composite substitution into a broken required
+        // Java-project edge. Use a staged JAR inside this workspace so JDT sees a plain library.
+        compileOnly files(localBuildrootEditorJar)
+        runs files(localBuildrootEditorJar)
+        testImplementation files(localBuildrootEditorJar)
+    } else {
+        compileOnly "li.cil.sedna:sedna-buildroot:0.0.8"
+        runs("li.cil.sedna:sedna-buildroot:0.0.8") { transitive = false }
+        testImplementation "li.cil.sedna:sedna-buildroot:0.0.8"
+    }
     // VS Code's Gradle Build Server currently drops these composite-build compileOnly
     // dependencies from the editor classpath. Add direct jar fallbacks so JDT can
     // resolve local Sedna/Ceres types without changing the normal Gradle build path.
-    if (localCeresJar != null) {
+    if (localCeresJar != null && !isWindows) {
         compileOnly files(localCeresJar)
         testImplementation files(localCeresJar)
     }
-    if (localSednaJar != null) {
+    if (localSednaJar != null && !isWindows) {
         compileOnly files(localSednaJar)
         testImplementation files(localSednaJar)
     }
-    if (localBuildrootJar != null) {
+    if (localBuildrootJar != null && !isWindows) {
         compileOnly files(localBuildrootJar)
         testImplementation files(localBuildrootJar)
     }
@@ -183,9 +225,13 @@ dependencies {
         modRuntime "curse.maven:markdown-manual-reimagined-${markdown_manual_project_id}:${markdown_manual_file_id}"
     }
     if (hasLocalSednaMc) {
-        // The runtime Sedna mod stays separate from the core Sedna library and is
-        // supplied by the sibling sedna-mc build via settings.gradle substitution.
-        modRuntime "curse.maven:sedna-${sedna_project_id}:0.0.0-local"
+        if (localSednaMcJar != null && isWindows) {
+            modRuntime files(localSednaMcJar)
+        } else {
+            // The runtime Sedna mod stays separate from the core Sedna library and is
+            // supplied by the sibling sedna-mc build via settings.gradle substitution.
+            modRuntime "curse.maven:sedna-${sedna_project_id}:0.0.0-local"
+        }
     }
 
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"

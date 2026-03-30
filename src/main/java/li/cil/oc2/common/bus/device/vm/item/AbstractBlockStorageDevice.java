@@ -306,13 +306,13 @@ public abstract class AbstractBlockStorageDevice<TBlock extends BlockDevice, TId
         }
 
         @Override
-        public int read(final byte[] b) throws IOException {
+        public int read(@Nullable final byte[] b) throws IOException {
             onAccess();
             return inner.read(b);
         }
 
         @Override
-        public int read(final byte[] b, final int off, final int len) throws IOException {
+        public int read(@Nullable final byte[] b, final int off, final int len) throws IOException {
             onAccess();
             return inner.read(b, off, len);
         }
@@ -370,13 +370,13 @@ public abstract class AbstractBlockStorageDevice<TBlock extends BlockDevice, TId
         }
 
         @Override
-        public void write(final byte[] b) throws IOException {
+        public void write(@Nullable final byte[] b) throws IOException {
             onAccess();
             inner.write(b);
         }
 
         @Override
-        public void write(final byte[] b, final int off, final int len) throws IOException {
+        public void write(@Nullable final byte[] b, final int off, final int len) throws IOException {
             onAccess();
             inner.write(b, off, len);
         }

@@ -11,20 +11,20 @@ import li.cil.oc2.common.bus.device.util.IdentityProxy;
 import li.cil.oc2.common.bus.device.util.OptionalAddress;
 import li.cil.oc2.common.bus.device.util.OptionalInterrupt;
 import li.cil.oc2.common.capabilities.Capabilities;
+import li.cil.oc2.common.capabilities.CapabilityProvider;
+import li.cil.oc2.common.capabilities.CapabilityRef;
 import li.cil.oc2.common.serialization.NBTSerialization;
+import li.cil.oc2.common.util.LazyValue;
 import li.cil.oc2.common.util.NBTTagIds;
 import li.cil.sedna.device.virtio.VirtIONetworkDevice;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.LazyOptional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public abstract class AbstractNetworkInterfaceDevice extends IdentityProxy<ItemStack> implements VMDevice, ItemDevice, ICapabilityProvider {
+public abstract class AbstractNetworkInterfaceDevice extends IdentityProxy<ItemStack> implements VMDevice, ItemDevice, CapabilityProvider {
     private static final String DEVICE_TAG_NAME = "device";
     private static final String ADDRESS_TAG_NAME = "address";
     private static final String INTERRUPT_TAG_NAME = "interrupt";
@@ -49,12 +49,12 @@ public abstract class AbstractNetworkInterfaceDevice extends IdentityProxy<ItemS
 
     @Nonnull
     @Override
-    public <T> LazyOptional<T> getCapability(final Capability<T> cap, @Nullable final Direction side) {
+    public <T> LazyValue<T> getCapability(final CapabilityRef<T> cap, @Nullable final Direction side) {
         if (cap == Capabilities.networkInterface()) {
-            return LazyOptional.of(() -> networkInterface).cast();
+            return LazyValue.of(() -> networkInterface).cast();
         }
 
-        return LazyOptional.empty();
+        return LazyValue.empty();
     }
 
     @Override

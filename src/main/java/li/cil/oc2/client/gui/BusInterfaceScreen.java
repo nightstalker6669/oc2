@@ -98,9 +98,10 @@ public final class BusInterfaceScreen extends Screen {
         super.tick();
 
         final Vec3 busCableCenter = Vec3.atCenterOf(busCable.getBlockPos());
+        final var player = getMinecraft().player;
         if (!busCable.isValid() ||
-            getMinecraft().player == null ||
-            getMinecraft().player.distanceToSqr(busCableCenter) > 8 * 8) {
+            player == null ||
+            player.distanceToSqr(busCableCenter) > 8 * 8) {
             onClose();
         }
     }

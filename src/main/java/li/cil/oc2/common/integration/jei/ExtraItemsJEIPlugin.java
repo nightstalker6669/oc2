@@ -10,8 +10,7 @@ import li.cil.oc2.common.util.ItemStackUtils;
 import li.cil.oc2.common.util.NBTUtils;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
-import mezz.jei.api.constants.VanillaTypes;
-import mezz.jei.api.ingredients.subtypes.IIngredientSubtypeInterpreter;
+import mezz.jei.api.ingredients.subtypes.ISubtypeInterpreter;
 import mezz.jei.api.ingredients.subtypes.UidContext;
 import mezz.jei.api.registration.ISubtypeRegistration;
 import net.minecraft.nbt.CompoundTag;
@@ -26,6 +25,7 @@ import javax.annotation.Nullable;
 import static li.cil.oc2.common.Constants.ITEMS_TAG_NAME;
 
 @JeiPlugin
+@SuppressWarnings("deprecation")
 public class ExtraItemsJEIPlugin implements IModPlugin {
     @Override
     public ResourceLocation getPluginUid() {
@@ -34,33 +34,51 @@ public class ExtraItemsJEIPlugin implements IModPlugin {
 
     @Override
     public void registerItemSubtypes(final ISubtypeRegistration registration) {
-        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, Items.COMPUTER.get(), new ComputerSubtypeInterpreter());
-        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, Items.ROBOT.get(), new RobotSubtypeInterpreter());
-        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, Items.HARD_DRIVE_CUSTOM.get(), new BlockDeviceSubtypeInterpreter());
-        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, Items.FLASH_MEMORY_CUSTOM.get(), new BlockDeviceSubtypeInterpreter());
+        registration.registerSubtypeInterpreter(Items.COMPUTER.get(), new ComputerSubtypeInterpreter());
+        registration.registerSubtypeInterpreter(Items.ROBOT.get(), new RobotSubtypeInterpreter());
+        registration.registerSubtypeInterpreter(Items.HARD_DRIVE_CUSTOM.get(), new BlockDeviceSubtypeInterpreter());
+        registration.registerSubtypeInterpreter(Items.FLASH_MEMORY_CUSTOM.get(), new BlockDeviceSubtypeInterpreter());
     }
 
-    private static final class ComputerSubtypeInterpreter implements IIngredientSubtypeInterpreter<ItemStack> {
+    private static final class ComputerSubtypeInterpreter implements ISubtypeInterpreter<ItemStack> {
         @Override
-        public String apply(final ItemStack ingredient, final UidContext context) {
+        public Object getSubtypeData(final ItemStack ingredient, final UidContext context) {
             final CompoundTag itemsTag = NBTUtils.getChildTag(ItemStackUtils.getBlockEntityDataTag(ingredient), ITEMS_TAG_NAME);
-            return itemsTag.isEmpty() ? NONE : stableTagToString(itemsTag);
+            return itemsTag.isEmpty() ? null : stableTagToString(itemsTag);
+        }
+
+        @Override
+        public String getLegacyStringSubtypeInfo(final ItemStack ingredient, final UidContext context) {
+            final Object subtypeData = getSubtypeData(ingredient, context);
+            return subtypeData instanceof final String value ? value : "";
         }
     }
 
-    private static final class RobotSubtypeInterpreter implements IIngredientSubtypeInterpreter<ItemStack> {
+    private static final class RobotSubtypeInterpreter implements ISubtypeInterpreter<ItemStack> {
         @Override
-        public String apply(final ItemStack ingredient, final UidContext context) {
+        public Object getSubtypeData(final ItemStack ingredient, final UidContext context) {
             final CompoundTag itemsTag = NBTUtils.getChildTag(ItemStackUtils.getModDataTag(ingredient), API.MOD_ID, ITEMS_TAG_NAME);
-            return itemsTag.isEmpty() ? NONE : stableTagToString(itemsTag);
+            return itemsTag.isEmpty() ? null : stableTagToString(itemsTag);
+        }
+
+        @Override
+        public String getLegacyStringSubtypeInfo(final ItemStack ingredient, final UidContext context) {
+            final Object subtypeData = getSubtypeData(ingredient, context);
+            return subtypeData instanceof final String value ? value : "";
         }
     }
 
-    private static final class BlockDeviceSubtypeInterpreter implements IIngredientSubtypeInterpreter<ItemStack> {
+    private static final class BlockDeviceSubtypeInterpreter implements ISubtypeInterpreter<ItemStack> {
         @Override
-        public String apply(final ItemStack ingredient, final UidContext context) {
+        public Object getSubtypeData(final ItemStack ingredient, final UidContext context) {
             final String registryName = ItemStackUtils.getModDataTag(ingredient).getString(AbstractBlockDeviceItem.DATA_TAG_NAME);
-            return Strings.isNullOrEmpty(registryName) ? NONE : registryName;
+            return Strings.isNullOrEmpty(registryName) ? null : registryName;
+        }
+
+        @Override
+        public String getLegacyStringSubtypeInfo(final ItemStack ingredient, final UidContext context) {
+            final Object subtypeData = getSubtypeData(ingredient, context);
+            return subtypeData instanceof final String value ? value : "";
         }
     }
 

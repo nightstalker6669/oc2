@@ -30,11 +30,9 @@ public final class GlobalVMContext implements VMContext, VMContextManagerCollect
     // memory ranges explicitly will allow grabbing reserved ones.
 
     @Serialized
-    @SuppressWarnings("FieldMayBeFinal")
     private BitSet reservedInterrupts = new BitSet();
 
     @Serialized
-    @SuppressWarnings("FieldMayBeFinal")
     private MemoryRangeList reservedMemoryRanges = new MemoryRangeList();
 
     ///////////////////////////////////////////////////////////////////

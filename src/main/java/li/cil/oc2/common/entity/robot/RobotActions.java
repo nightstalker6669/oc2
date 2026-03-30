@@ -27,7 +27,7 @@ public final class RobotActions {
         }
     }
 
-    public static void performServer(final Robot robot, final AbstractRobotAction currentAction) {
+    public static void performServer(final Robot robot, @Nullable final AbstractRobotAction currentAction) {
         for (final AbstractRobotActionType type : ACTIONS) {
             type.performServer(robot, currentAction);
         }

@@ -254,6 +254,9 @@ public final class BusCableBlock extends BaseEntityBlock {
             }
         } else if (!player.isShiftKeyDown() && !state.getValue(HAS_FACADE) && getInterfaceCount(state) == 0) {
             switch (busCableBlockEntity.getFacadeType(heldItem)) {
+                case NOT_A_BLOCK -> {
+                    return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+                }
                 case INVALID_BLOCK -> {
                     if (!level.isClientSide()) {
                         player.displayClientMessage(text("message.{mod}.invalid_facade_block"), true);
@@ -472,7 +475,7 @@ public final class BusCableBlock extends BaseEntityBlock {
             });
         }
 
-        LevelUtils.playSound(level, pos, state.getSoundType(), SoundType::getBreakSound);
+        LevelUtils.playSound(level, pos, state.getSoundType(level, pos, player), SoundType::getBreakSound);
     }
 
     private static void onConnectionTypeChanged(final LevelAccessor level, final BlockPos pos, @Nullable final Direction face, final boolean neighborConnectionChanged) {
@@ -587,6 +590,8 @@ public final class BusCableBlock extends BaseEntityBlock {
             final int cableBit = 1 << sideIndex;
             final int interfaceBit = cableBit << 6;
             switch (state.getValue(FACING_TO_CONNECTION_MAP.get(Constants.DIRECTIONS[sideIndex]))) {
+                case NONE -> {
+                }
                 case CABLE -> index |= cableBit;
                 case INTERFACE -> index |= interfaceBit;
             }

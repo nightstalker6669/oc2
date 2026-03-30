@@ -8,19 +8,19 @@ import li.cil.oc2.api.API;
 import li.cil.oc2.api.bus.device.vm.VMDeviceLoadResult;
 import li.cil.oc2.api.bus.device.vm.context.VMContext;
 import li.cil.oc2.api.capabilities.NetworkInterface;
+import li.cil.oc2.common.capabilities.CapabilityRef;
+import li.cil.oc2.common.util.LazyValue;
 import li.cil.oc2.common.item.NetworkTunnelItem;
 import li.cil.oc2.common.util.TickUtils;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.time.Duration;
 import java.util.*;
 
@@ -31,10 +31,10 @@ public final class NetworkTunnelDevice extends AbstractNetworkInterfaceDevice {
 
     ///////////////////////////////////////////////////////////////
 
-    @NotNull
+    @Nonnull
     @Override
-    public <T> LazyOptional<T> getCapability(final Capability<T> cap, @Nullable final Direction side) {
-        return LazyOptional.empty();
+    public <T> LazyValue<T> getCapability(final CapabilityRef<T> cap, @Nullable final Direction side) {
+        return LazyValue.empty();
     }
 
     @Override

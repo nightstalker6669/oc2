@@ -94,6 +94,7 @@ public final class ProjectorBlockEntity extends ModBlockEntity implements Tickab
     ///////////////////////////////////////////////////////////////
 
     public boolean isProjecting() {
+        final var level = this.level;
         if (!isMounted || level == null) {
             return false;
         }
@@ -273,6 +274,7 @@ public final class ProjectorBlockEntity extends ModBlockEntity implements Tickab
 
         // We may get called from unmount() of our device, which can be triggered due to chunk unload.
         // Hence, we need to check the loaded state here, lest we ghost load the chunk, breaking everything.
+        final var level = this.level;
         if (level != null && !level.isClientSide() && level.isLoaded(getBlockPos())) {
             if (this.isMounted && !isMounted) {
                 Arrays.fill(picture.getPlaneData(0), (byte) -128);

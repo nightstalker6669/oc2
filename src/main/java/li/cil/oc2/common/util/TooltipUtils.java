@@ -16,6 +16,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.StringSplitter;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.locale.Language;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -51,11 +52,12 @@ public final class TooltipUtils {
 
     public static void drawTooltip(final GuiGraphics graphics, final List<? extends FormattedText> tooltip, final int x, final int y, final int widthHint, final ItemStack itemStack) {
         final Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.screen == null) {
+        final Screen screen = minecraft.screen;
+        if (screen == null) {
             return;
         }
 
-        final int availableWidth = Math.max(x, minecraft.screen.width - x);
+        final int availableWidth = Math.max(x, screen.width - x);
         final int targetWidth = Math.min(availableWidth, widthHint);
         final Font font = minecraft.font;
 

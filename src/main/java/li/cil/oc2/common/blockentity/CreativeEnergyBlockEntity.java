@@ -22,7 +22,10 @@ public final class CreativeEnergyBlockEntity extends ModBlockEntity implements T
 
     @Override
     public void serverTick() {
-        assert level != null;
+        final var level = this.level;
+        if (level == null) {
+            return;
+        }
 
         for (final Direction side : SIDES) {
             final BlockPos neighborPos = getBlockPos().relative(side);

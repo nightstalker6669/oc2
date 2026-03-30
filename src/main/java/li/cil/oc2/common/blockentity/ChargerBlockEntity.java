@@ -59,6 +59,7 @@ public final class ChargerBlockEntity extends ModBlockEntity implements NamedDev
     }
 
     private void tick() {
+        final var level = this.level;
         if (level == null) {
             return;
         }
@@ -106,7 +107,10 @@ public final class ChargerBlockEntity extends ModBlockEntity implements NamedDev
     ///////////////////////////////////////////////////////////////////
 
     private void chargeBlock() {
-        assert level != null;
+        final var level = this.level;
+        if (level == null) {
+            return;
+        }
 
         if (energy.getEnergyStored() == 0) {
             return;
@@ -119,7 +123,10 @@ public final class ChargerBlockEntity extends ModBlockEntity implements NamedDev
     }
 
     private void chargeEntities() {
-        assert level != null;
+        final var level = this.level;
+        if (level == null) {
+            return;
+        }
 
         if (energy.getEnergyStored() == 0) {
             return;
@@ -132,7 +139,10 @@ public final class ChargerBlockEntity extends ModBlockEntity implements NamedDev
     }
 
     private void chargeBlockCapabilities(final BlockPos pos) {
-        assert level != null;
+        final var level = this.level;
+        if (level == null) {
+            return;
+        }
 
         final IEnergyStorage energyStorage = level.getCapability(net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK, pos, Direction.DOWN);
         if (energyStorage != null) {
@@ -151,7 +161,7 @@ public final class ChargerBlockEntity extends ModBlockEntity implements NamedDev
             charge(energyStorage);
         }
 
-        final IItemHandler itemHandler = entity.getCapability(net.neoforged.neoforge.capabilities.Capabilities.ItemHandler.ENTITY, null);
+        final IItemHandler itemHandler = entity.getCapability(net.neoforged.neoforge.capabilities.Capabilities.ItemHandler.ENTITY);
         if (itemHandler != null) {
             chargeItems(itemHandler);
         }
@@ -161,7 +171,7 @@ public final class ChargerBlockEntity extends ModBlockEntity implements NamedDev
         for (int slot = 0; slot < itemHandler.getSlots(); slot++) {
             final ItemStack stack = itemHandler.getStackInSlot(slot);
             if (!stack.isEmpty()) {
-                final IEnergyStorage energyStorage = stack.getCapability(net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.ITEM, null);
+                final IEnergyStorage energyStorage = stack.getCapability(net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.ITEM);
                 if (energyStorage != null) {
                     charge(energyStorage);
                 }
@@ -170,7 +180,10 @@ public final class ChargerBlockEntity extends ModBlockEntity implements NamedDev
     }
 
     private void charge(final IEnergyStorage energyStorage) {
-        assert level != null;
+        final var level = this.level;
+        if (level == null) {
+            return;
+        }
 
         final int amount = Math.min(energy.getEnergyStored(), Config.chargerEnergyPerTick);
         final boolean simulate = level.isClientSide;

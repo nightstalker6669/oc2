@@ -13,12 +13,11 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.network.NetworkHooks;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 public final class RobotTerminalContainer extends AbstractRobotContainer {
     public static void createServer(final Robot robot, final FixedEnergyStorage energy, final CommonDeviceBusController busController, final ServerPlayer player) {
-        NetworkHooks.openGui(player, new SimpleMenuProvider(
+        player.openMenu(new SimpleMenuProvider(
             (id, inventory, menuPlayer) -> new RobotTerminalContainer(id, menuPlayer, robot, createEnergyInfo(energy, busController)),
             robot.getName()
         ), b -> b.writeVarInt(robot.getId()));

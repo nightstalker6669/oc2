@@ -22,7 +22,7 @@ public final class TierSortingRegistry {
     }
 
     @Nullable
-    public static Tier byName(final ResourceLocation name) {
+    public static Tier byName(@Nullable final ResourceLocation name) {
         if (name == null) return null;
         return switch (name.getPath()) {
             case "stone" -> Tiers.STONE;

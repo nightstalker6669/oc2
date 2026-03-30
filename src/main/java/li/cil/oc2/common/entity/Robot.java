@@ -10,6 +10,7 @@ import li.cil.oc2.api.bus.device.object.ObjectDevice;
 import li.cil.oc2.api.bus.device.object.Parameter;
 import li.cil.oc2.api.bus.device.provider.ItemDeviceQuery;
 import li.cil.oc2.api.capabilities.TerminalUserProvider;
+import li.cil.oc2.api.util.Invalidatable;
 import li.cil.oc2.common.Config;
 import li.cil.oc2.common.bus.AbstractDeviceBusElement;
 import li.cil.oc2.common.bus.CommonDeviceBusController;
@@ -71,9 +72,9 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.common.NeoForge;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.LazyOptional;
+import li.cil.oc2.common.capabilities.CapabilityProvider;
+import li.cil.oc2.common.capabilities.CapabilityRef;
+import li.cil.oc2.common.util.LazyValue;
 import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -175,27 +176,27 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
     }
 
     @Nonnull
-    public <T> LazyOptional<T> getCapability(final Capability<T> capability, @Nullable final Direction side) {
+    public <T> LazyValue<T> getCapability(final CapabilityRef<T> capability, @Nullable final Direction side) {
         if (capability == Capabilities.itemHandler()) {
-            return LazyOptional.of(() -> inventory).cast();
+            return LazyValue.of(() -> inventory).cast();
         }
         if (capability == Capabilities.energyStorage() && Config.robotsUseEnergy()) {
-            return LazyOptional.of(() -> energy).cast();
+            return LazyValue.of(() -> energy).cast();
         }
         if (capability == Capabilities.robot()) {
-            return LazyOptional.of(() -> this).cast();
+            return LazyValue.of(() -> this).cast();
         }
 
         for (final Device device : virtualMachine.busController.getDevices()) {
-            if (device instanceof final ICapabilityProvider capabilityProvider) {
-                final LazyOptional<T> value = capabilityProvider.getCapability(capability, side);
+            if (device instanceof final CapabilityProvider capabilityProvider) {
+                final LazyValue<T> value = capabilityProvider.getCapability(capability, side);
                 if (value.isPresent()) {
                     return value;
                 }
             }
         }
 
-        return LazyOptional.empty();
+        return LazyValue.empty();
     }
 
     public long getLastPistonMovement() {
@@ -619,15 +620,16 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
             if (level().isClientSide()) {
                 RobotActions.performClient(Robot.this);
             } else {
-                if (action != null) {
-                    final RobotActionResult result = action.perform(Robot.this);
+                final AbstractRobotAction currentAction = action;
+                if (currentAction != null) {
+                    final RobotActionResult result = currentAction.perform(Robot.this);
                     if (result != RobotActionResult.INCOMPLETE) {
                         synchronized (results) {
                             if (results.size() == MAX_QUEUED_RESULTS) {
                                 results.remove();
                             }
 
-                            results.add(new RobotActionProcessorResult(action.getId(), result));
+                            results.add(new RobotActionProcessorResult(currentAction.getId(), result));
                         }
 
                         action = null;
@@ -751,8 +753,8 @@ public final class Robot extends Entity implements li.cil.oc2.api.capabilities.R
         private UUID deviceId = UUID.randomUUID();
 
         @Override
-        public Optional<Collection<LazyOptional<DeviceBusElement>>> getNeighbors() {
-            return Optional.of(singleton(LazyOptional.of(() -> deviceItems.busElement)));
+        public Optional<Collection<Invalidatable<DeviceBusElement>>> getNeighbors() {
+            return Optional.of(singleton(Invalidatable.of((DeviceBusElement) deviceItems.busElement)));
         }
 
         @Override

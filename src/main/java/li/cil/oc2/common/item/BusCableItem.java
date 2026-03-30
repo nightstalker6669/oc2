@@ -71,7 +71,8 @@ public final class BusCableItem extends ModBlockItem {
             CriteriaTriggers.PLACED_BLOCK.trigger(serverPlayer, pos, stack);
         }
 
-        LevelUtils.playSound(level, pos, state.getSoundType(level, pos, player), SoundType::getPlaceSound);
+        final SoundType soundType = player != null ? state.getSoundType(level, pos, player) : state.getSoundType();
+        LevelUtils.playSound(level, pos, soundType, SoundType::getPlaceSound);
 
         if (player == null || !player.getAbilities().instabuild) {
             stack.shrink(1);

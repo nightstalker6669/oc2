@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.concurrent.CompletableFuture;
+import java.util.UUID;
 
 public final class DiskDriveDevice<T extends BlockEntity & DiskDriveContainer> extends AbstractBlockStorageDevice<BlockDevice, T> {
     private static final ByteBufferBlockDevice EMPTY_BLOCK_DEVICE = ByteBufferBlockDevice.create(0, false);
@@ -91,7 +92,8 @@ public final class DiskDriveDevice<T extends BlockEntity & DiskDriveContainer> e
             return CompletableFuture.completedFuture(EMPTY_BLOCK_DEVICE);
         }
 
-        blobHandle = BlobStorage.validateHandle(blobHandle);
+        final UUID blobHandle = BlobStorage.validateHandle(this.blobHandle);
+        this.blobHandle = blobHandle;
         return CompletableFuture.supplyAsync(() -> {
             try {
                 final FileChannel channel = BlobStorage.getOrOpen(blobHandle);

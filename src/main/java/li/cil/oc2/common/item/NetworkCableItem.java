@@ -86,6 +86,8 @@ public final class NetworkCableItem extends ModItem {
                             stack.shrink(1);
                         }
                         break;
+                    case ALREADY_CONNECTED:
+                        break;
 
                     case FAILURE:
                         persistentData.put(LINK_START_TAG_NAME, NbtUtils.writeBlockPos(startPos));

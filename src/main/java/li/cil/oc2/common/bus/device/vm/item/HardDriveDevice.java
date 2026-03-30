@@ -15,6 +15,7 @@ import java.nio.channels.FileChannel;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 public class HardDriveDevice extends AbstractBlockStorageDevice<ByteBufferBlockDevice, ItemStack> {
@@ -34,7 +35,8 @@ public class HardDriveDevice extends AbstractBlockStorageDevice<ByteBufferBlockD
 
     @Override
     protected CompletableFuture<ByteBufferBlockDevice> createBlockDevice() {
-        blobHandle = BlobStorage.validateHandle(blobHandle);
+        final UUID blobHandle = BlobStorage.validateHandle(this.blobHandle);
+        this.blobHandle = blobHandle;
 
         return CompletableFuture.supplyAsync(() -> {
             try {

@@ -18,9 +18,10 @@ public final class DiskDriveFloppyMessage extends AbstractMessage {
 
     public DiskDriveFloppyMessage(final DiskDriveBlockEntity diskDrive) {
         this.pos = diskDrive.getBlockPos();
-        this.data = diskDrive.getFloppy().isEmpty() || diskDrive.getLevel() == null
+        final var level = diskDrive.getLevel();
+        this.data = diskDrive.getFloppy().isEmpty() || level == null
             ? new CompoundTag()
-            : li.cil.oc2.common.util.ItemStackUtils.save(diskDrive.getFloppy(), diskDrive.getLevel().registryAccess());
+            : li.cil.oc2.common.util.ItemStackUtils.save(diskDrive.getFloppy(), level.registryAccess());
     }
 
     public DiskDriveFloppyMessage(final FriendlyByteBuf buffer) {
@@ -32,7 +33,8 @@ public final class DiskDriveFloppyMessage extends AbstractMessage {
     @Override
     public void fromBytes(final FriendlyByteBuf buffer) {
         pos = buffer.readBlockPos();
-        data = buffer.readNbt();
+        final CompoundTag data = buffer.readNbt();
+        this.data = data != null ? data : new CompoundTag();
     }
 
     @Override
@@ -46,6 +48,11 @@ public final class DiskDriveFloppyMessage extends AbstractMessage {
     @Override
     protected void handleMessage(final NetworkEvent.Context context) {
         MessageUtils.withClientBlockEntityAt(pos, DiskDriveBlockEntity.class,
-            diskDrive -> diskDrive.setFloppyClient(diskDrive.getLevel() == null ? ItemStack.EMPTY : li.cil.oc2.common.util.ItemStackUtils.parse(diskDrive.getLevel().registryAccess(), data)));
+            diskDrive -> {
+                final var level = diskDrive.getLevel();
+                diskDrive.setFloppyClient(level != null
+                    ? li.cil.oc2.common.util.ItemStackUtils.parse(level.registryAccess(), data)
+                    : ItemStack.EMPTY);
+            });
     }
 }

@@ -113,6 +113,7 @@ public final class NetworkInterfaceCardScreen extends Screen {
     public boolean mouseReleased(final double mouseX, final double mouseY, final int button) {
         if (isDraggingBlock && button == 0) {
             isDraggingBlock = false;
+            final Direction focusedSide = this.focusedSide;
             if (!hasDraggedBlock && focusedSide != null) {
                 final NetworkInterfaceCardConfigurationMessage message = new NetworkInterfaceCardConfigurationMessage(hand, focusedSide, !getConfiguration(focusedSide));
                 Network.sendToServer(message);

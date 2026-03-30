@@ -3,20 +3,22 @@
 package li.cil.oc2.common.util;
 
 import li.cil.oc2.api.API;
+import li.cil.oc2.common.registry.RegistryView;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.IForgeRegistryEntry;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
 
 public abstract class RegistryUtils {
     private enum Phase {
@@ -33,14 +35,6 @@ public abstract class RegistryUtils {
         if (phase != Phase.INIT) throw new IllegalStateException();
 
         final DeferredRegister<T> entry = DeferredRegister.create(key, API.MOD_ID);
-        ENTRIES.add(entry);
-        return entry;
-    }
-
-    public static <T> DeferredRegister<T> getInitializerFor(final IForgeRegistry<T> registry) {
-        if (phase != Phase.INIT) throw new IllegalStateException();
-
-        final DeferredRegister<T> entry = DeferredRegister.create(registry, API.MOD_ID);
         ENTRIES.add(entry);
         return entry;
     }
@@ -62,20 +56,20 @@ public abstract class RegistryUtils {
         ENTRIES.clear();
     }
 
-    public static <T> String key(final IForgeRegistryEntry<T> registryEntry) {
-        return Objects.requireNonNull(registryEntry.getRegistryName()).toString();
+    public static <T> String key(final RegistryView<T> registry, final T value) {
+        return Objects.requireNonNull(registry.getKey(value)).toString();
     }
 
-    public static <T> String key(final RegistryObject<T> registryObject) {
-        return registryObject.getId().toString();
+    public static <T> String key(final DeferredHolder<T, ? extends T> deferredHolder) {
+        return deferredHolder.getId().toString();
     }
 
-    public static <T> Optional<String> optionalKey(@Nullable final IForgeRegistryEntry<T> registryEntry) {
-        if (registryEntry == null) {
+    public static <T> Optional<String> optionalKey(final RegistryView<T> registry, @Nullable final T value) {
+        if (value == null) {
             return Optional.empty();
         }
 
-        final ResourceLocation providerName = registryEntry.getRegistryName();
+        final ResourceLocation providerName = registry.getKey(value);
         if (providerName == null) {
             return Optional.empty();
         }
@@ -83,12 +77,57 @@ public abstract class RegistryUtils {
         return Optional.of(providerName.toString());
     }
 
-    public static <T> Optional<String> optionalKey(@Nullable final RegistryObject<T> registryObject) {
-        if (registryObject == null) {
+    public static <T> Optional<String> optionalKey(@Nullable final DeferredHolder<T, ? extends T> deferredHolder) {
+        if (deferredHolder == null) {
             return Optional.empty();
         }
 
-        return Optional.of(registryObject.getId().toString());
+        return Optional.of(deferredHolder.getId().toString());
+    }
+
+    public static <T> Supplier<RegistryView<T>> makeRegistryView(final DeferredRegister<T> register) {
+        register.makeRegistry(builder -> {
+        });
+        final Supplier<Registry<T>> registrySupplier = register.getRegistry();
+        final ResourceKey<? extends Registry<T>> registryKey = register.getRegistryKey();
+
+        return () -> new RegistryView<>() {
+            @Override
+            public ResourceKey<? extends Registry<T>> getRegistryKey() {
+                return registryKey;
+            }
+
+            @Override
+            public ResourceLocation getKey(@Nullable final T value) {
+                if (value == null) {
+                    return null;
+                }
+                return registrySupplier.get().getKey(value);
+            }
+
+            @Override
+            public T getValue(@Nullable final ResourceLocation location) {
+                if (location == null) {
+                    return null;
+                }
+                return registrySupplier.get().get(location);
+            }
+
+            @Override
+            public Collection<T> getValues() {
+                return registrySupplier.get().stream().toList();
+            }
+
+            @Override
+            public Set<ResourceLocation> getKeys() {
+                return registrySupplier.get().keySet();
+            }
+
+            @Override
+            public Registry<T> unwrap() {
+                return registrySupplier.get();
+            }
+        };
     }
 
     private RegistryUtils() {

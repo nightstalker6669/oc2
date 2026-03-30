@@ -51,11 +51,12 @@ public final class GuiUtils {
 
     public static <TContainer extends AbstractContainerMenu> void renderMissingDeviceInfoTooltip(final GuiGraphics graphics, final AbstractContainerScreen<TContainer> screen, final int mouseX, final int mouseY, final DeviceType type, final Component tooltip) {
         final Minecraft minecraft = screen.getMinecraft();
-        if (minecraft.player == null) {
+        final var player = minecraft.player;
+        if (player == null) {
             return;
         }
 
-        final boolean isCursorHoldingStack = !minecraft.player.inventoryMenu.getCarried().isEmpty();
+        final boolean isCursorHoldingStack = !player.inventoryMenu.getCarried().isEmpty();
         if (isCursorHoldingStack) {
             return;
         }

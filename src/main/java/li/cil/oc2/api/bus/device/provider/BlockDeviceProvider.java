@@ -7,7 +7,6 @@ import li.cil.oc2.api.bus.device.rpc.RPCDevice;
 import li.cil.oc2.api.bus.device.vm.VMDevice;
 import li.cil.oc2.api.util.Invalidatable;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraftforge.registries.IForgeRegistryEntry;
 
 /**
  * This is used to query for devices given a block face.
@@ -30,12 +29,13 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
  * are registered. For example:
  * <pre>
  * class YourModInitialization {
- *     static DeferredRegister&lt;BlockDeviceProvider&gt; BLOCK_DEVICE_PROVIDERS = DeferredRegister.create(BlockDeviceProvider.REGISTRY, "your_mod_id");
+ *     static DeferredRegister&lt;BlockDeviceProvider&gt; BLOCK_DEVICE_PROVIDERS =
+ *         DeferredRegister.create(Registries.BLOCK_DEVICE_PROVIDER, "your_mod_id");
  *
- *     static void initialize() {
+ *     static void initialize(final IEventBus modEventBus) {
  *         BLOCK_DEVICE_PROVIDERS.register("your_block_device_name", YourBlockDeviceProvider::new);
  *
- *         BLOCK_DEVICE_PROVIDERS.register(FMLJavaModLoadingContext.get().getModEventBus());
+ *         BLOCK_DEVICE_PROVIDERS.register(modEventBus);
  *     }
  * }
  * </pre>
@@ -45,7 +45,7 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
  * @see li.cil.oc2.api.bus.device.vm.VMDevice
  * @see BlockDeviceQuery
  */
-public interface BlockDeviceProvider extends IForgeRegistryEntry<BlockDeviceProvider> {
+public interface BlockDeviceProvider {
     /**
      * Get a device for the specified query.
      *

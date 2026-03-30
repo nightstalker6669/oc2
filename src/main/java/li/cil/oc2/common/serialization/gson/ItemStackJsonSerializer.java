@@ -11,12 +11,13 @@ import li.cil.oc2.common.serialization.NBTToJsonConverter;
 import li.cil.oc2.common.util.ItemStackUtils;
 import net.minecraft.world.item.ItemStack;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Type;
 
 public final class ItemStackJsonSerializer implements JsonSerializer<ItemStack> {
     @Override
-    public JsonElement serialize(final ItemStack src, final Type typeOfSrc, final JsonSerializationContext context) {
-        if (src.isEmpty()) {
+    public JsonElement serialize(@Nullable final ItemStack src, @Nullable final Type typeOfSrc, @Nullable final JsonSerializationContext context) {
+        if (src == null || src.isEmpty()) {
             return JsonNull.INSTANCE;
         }
 

@@ -9,7 +9,10 @@ import li.cil.oc2.api.capabilities.RedstoneEmitter;
 import li.cil.oc2.api.util.Side;
 import li.cil.oc2.common.Constants;
 import li.cil.oc2.common.capabilities.Capabilities;
+import li.cil.oc2.common.capabilities.CapabilityProvider;
+import li.cil.oc2.common.capabilities.CapabilityRef;
 import li.cil.oc2.common.util.HorizontalBlockUtils;
+import li.cil.oc2.common.util.LazyValue;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -18,14 +21,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.LazyOptional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public final class RedstoneInterfaceCardItemDevice extends AbstractItemRPCDevice implements DocumentedDevice, ICapabilityProvider {
+public final class RedstoneInterfaceCardItemDevice extends AbstractItemRPCDevice implements DocumentedDevice, CapabilityProvider {
     private static final String OUTPUT_TAG_NAME = "output";
 
     private static final String GET_REDSTONE_INPUT = "getRedstoneInput";
@@ -57,13 +57,13 @@ public final class RedstoneInterfaceCardItemDevice extends AbstractItemRPCDevice
 
     @Nonnull
     @Override
-    public <T> LazyOptional<T> getCapability(@Nonnull final Capability<T> capability, @Nullable final Direction side) {
+    public <T> LazyValue<T> getCapability(@Nonnull final CapabilityRef<T> capability, @Nullable final Direction side) {
         if (capability == Capabilities.redstoneEmitter() && side != null) {
             final int index = side.get3DDataValue();
-            return LazyOptional.of(() -> capabilities[index]).cast();
+            return LazyValue.of(() -> capabilities[index]).cast();
         }
 
-        return LazyOptional.empty();
+        return LazyValue.empty();
     }
 
     @Override
@@ -90,7 +90,9 @@ public final class RedstoneInterfaceCardItemDevice extends AbstractItemRPCDevice
 
         final BlockPos pos = blockEntity.getBlockPos();
         final Direction direction = HorizontalBlockUtils.toGlobal(blockEntity.getBlockState(), side);
-        assert direction != null;
+        if (direction == null) {
+            return 0;
+        }
 
         final BlockPos neighborPos = pos.relative(direction);
         final ChunkPos chunkPos = new ChunkPos(neighborPos);

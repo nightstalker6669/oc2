@@ -11,7 +11,10 @@ import java.lang.reflect.Type;
 public final class DirectionJsonSerializer implements JsonDeserializer<Direction>, JsonSerializer<Direction> {
     @Nullable
     @Override
-    public Direction deserialize(final JsonElement json, final Type typeOfT, final JsonDeserializationContext context) throws JsonParseException {
+    public Direction deserialize(@Nullable final JsonElement json, @Nullable final Type typeOfT, @Nullable final JsonDeserializationContext context) throws JsonParseException {
+        if (json == null) {
+            return null;
+        }
         if (!json.isJsonPrimitive()) {
             return null;
         }
@@ -33,7 +36,7 @@ public final class DirectionJsonSerializer implements JsonDeserializer<Direction
     }
 
     @Override
-    public JsonElement serialize(final Direction src, final Type typeOfSrc, final JsonSerializationContext context) {
-        return new JsonPrimitive(src.toString());
+    public JsonElement serialize(@Nullable final Direction src, @Nullable final Type typeOfSrc, @Nullable final JsonSerializationContext context) {
+        return src != null ? new JsonPrimitive(src.toString()) : JsonNull.INSTANCE;
     }
 }

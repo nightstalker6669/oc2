@@ -6,6 +6,7 @@ import li.cil.oc2.api.bus.DeviceBusElement;
 import li.cil.oc2.api.bus.device.DeviceType;
 import li.cil.oc2.api.bus.device.DeviceTypes;
 import li.cil.oc2.api.bus.device.provider.ItemDeviceQuery;
+import li.cil.oc2.api.util.Invalidatable;
 import li.cil.oc2.api.bus.device.vm.VMDevice;
 import li.cil.oc2.common.bus.AbstractDeviceBusElement;
 import li.cil.oc2.common.bus.AbstractItemDeviceBusElement;
@@ -14,7 +15,6 @@ import li.cil.oc2.common.container.AbstractTypedDeviceItemStackHandler;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.util.LazyOptional;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
@@ -183,9 +183,9 @@ public abstract class AbstractVMItemStackHandlers implements VMItemStackHandlers
 
     private final class VMBusElement extends AbstractDeviceBusElement {
         @Override
-        public Optional<Collection<LazyOptional<DeviceBusElement>>> getNeighbors() {
+        public Optional<Collection<Invalidatable<DeviceBusElement>>> getNeighbors() {
             return Optional.of(itemHandlers.values().stream()
-                .map(handler -> LazyOptional.of(() -> (DeviceBusElement) handler.getBusElement()))
+                .map(handler -> Invalidatable.of((DeviceBusElement) handler.getBusElement()))
                 .collect(Collectors.toList()));
         }
     }

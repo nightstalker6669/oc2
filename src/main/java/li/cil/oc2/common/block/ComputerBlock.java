@@ -28,7 +28,6 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -91,7 +90,7 @@ public final class ComputerBlock extends HorizontalDirectionalBlock implements E
 
     ///////////////////////////////////////////////////////////////////
 
-    public void fillItemCategory(final CreativeModeTab group, final NonNullList<ItemStack> items) {
+    public void appendCreativeTabItems(final NonNullList<ItemStack> items) {
         items.add(createComputerWithFlash());
         items.add(createPreconfiguredComputer());
     }

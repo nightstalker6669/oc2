@@ -7,6 +7,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import li.cil.oc2.common.integration.Wrenches;
+import li.cil.oc2.common.util.ItemStackUtils;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -56,7 +57,7 @@ public final class WrenchRecipe extends ShapelessRecipe {
         private static final MapCodec<WrenchRecipe> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Codec.STRING.optionalFieldOf("group", "").forGetter(recipe -> recipe.getGroup()),
             CraftingBookCategory.CODEC.fieldOf("category").orElse(CraftingBookCategory.MISC).forGetter(WrenchRecipe::category),
-            ItemStack.STRICT_CODEC.fieldOf("result").forGetter(recipe -> recipe.getResultItem(null)),
+            ItemStack.STRICT_CODEC.fieldOf("result").forGetter(recipe -> recipe.getResultItem(ItemStackUtils.getDefaultRegistries())),
             Ingredient.CODEC_NONEMPTY.listOf().fieldOf("ingredients").flatXmap(
                 values -> {
                     final Ingredient[] ingredients = values.toArray(Ingredient[]::new);
@@ -109,7 +110,7 @@ public final class WrenchRecipe extends ShapelessRecipe {
                 Ingredient.CONTENTS_STREAM_CODEC.encode(buffer, ingredient);
             }
 
-            ItemStack.STREAM_CODEC.encode(buffer, recipe.getResultItem(null));
+            ItemStack.STREAM_CODEC.encode(buffer, recipe.getResultItem(ItemStackUtils.getDefaultRegistries()));
         }
     }
 }

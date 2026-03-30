@@ -15,13 +15,12 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkHooks;
 
 import java.util.UUID;
 
 public final class NetworkTunnelContainer extends AbstractContainer {
     public static void createServer(final ServerPlayer player, final InteractionHand hand) {
-        NetworkHooks.openGui(player, new SimpleMenuProvider(
+        player.openMenu(new SimpleMenuProvider(
             (id, inventory, menuPlayer) -> new NetworkTunnelContainer(id, menuPlayer, hand),
             player.getItemInHand(hand).getItem().getDescription()
         ), b -> b.writeEnum(hand));

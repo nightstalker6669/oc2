@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelAccessor;
 
+import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.Optional;
@@ -24,7 +25,7 @@ public record ChunkLocation(WeakReference<LevelAccessor> level, ChunkPos positio
     }
 
     @Override
-    public boolean equals(final Object obj) {
+    public boolean equals(@Nullable final Object obj) {
         if (obj instanceof ChunkLocation that) {
             final LevelAccessor thisLevel = level.get();
             final LevelAccessor thatLevel = that.level.get();

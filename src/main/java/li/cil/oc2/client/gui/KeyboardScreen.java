@@ -52,9 +52,10 @@ public final class KeyboardScreen extends Screen {
         super.tick();
 
         final Vec3 keyboardCenter = Vec3.atCenterOf(keyboard.getBlockPos());
+        final LocalPlayer player = getMinecraft().player;
         if (!keyboard.isValid() ||
-            getMinecraft().player == null ||
-            getMinecraft().player.distanceToSqr(keyboardCenter) > 8 * 8) {
+            player == null ||
+            player.distanceToSqr(keyboardCenter) > 8 * 8) {
             onClose();
         }
     }

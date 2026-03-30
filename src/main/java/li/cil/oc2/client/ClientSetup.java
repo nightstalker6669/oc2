@@ -8,6 +8,7 @@ import li.cil.oc2.client.gui.*;
 import li.cil.oc2.client.item.CustomItemColors;
 import li.cil.oc2.client.item.CustomItemModelProperties;
 import li.cil.oc2.client.model.BusCableModelLoader;
+import li.cil.oc2.client.renderer.entity.RobotWithoutLevelRenderer;
 import li.cil.oc2.client.renderer.BusInterfaceNameRenderer;
 import li.cil.oc2.client.renderer.ProjectorDepthRenderer;
 import li.cil.oc2.client.renderer.blockentity.*;
@@ -19,13 +20,16 @@ import li.cil.oc2.common.blockentity.BlockEntities;
 import li.cil.oc2.common.bus.device.DeviceTypes;
 import li.cil.oc2.common.container.Containers;
 import li.cil.oc2.common.entity.Entities;
+import li.cil.oc2.common.item.Items;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
@@ -38,12 +42,18 @@ public final class ClientSetup {
 
         event.enqueueWork(() -> {
             CustomItemModelProperties.initialize();
-            CustomItemColors.initialize();
-
-            ItemBlockRenderTypes.setRenderLayer(Blocks.BUS_CABLE.get(), renderType -> true);
-            Minecraft.getInstance().getBlockColors().register(new BusCableBlockColor(), Blocks.BUS_CABLE.get());
             NeoForge.EVENT_BUS.register(ProjectorDepthRenderer.class);
         });
+    }
+
+    @SubscribeEvent
+    public static void handleRegisterBlockColors(final RegisterColorHandlersEvent.Block event) {
+        event.register(new BusCableBlockColor(), Blocks.BUS_CABLE.get());
+    }
+
+    @SubscribeEvent
+    public static void handleRegisterItemColors(final RegisterColorHandlersEvent.Item event) {
+        CustomItemColors.register(event);
     }
 
     @SubscribeEvent
@@ -58,6 +68,16 @@ public final class ClientSetup {
         event.register(Containers.ROBOT.get(), RobotContainerScreen::new);
         event.register(Containers.ROBOT_TERMINAL.get(), RobotTerminalScreen::new);
         event.register(Containers.NETWORK_TUNNEL.get(), NetworkTunnelScreen::new);
+    }
+
+    @SubscribeEvent
+    public static void handleRegisterClientExtensions(final RegisterClientExtensionsEvent event) {
+        event.registerItem(new IClientItemExtensions() {
+            @Override
+            public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                return new RobotWithoutLevelRenderer(Minecraft.getInstance().getBlockEntityRenderDispatcher(), Minecraft.getInstance().getEntityModels());
+            }
+        }, Items.ROBOT.get());
     }
 
     @SubscribeEvent

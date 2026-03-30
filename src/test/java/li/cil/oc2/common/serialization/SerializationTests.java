@@ -122,6 +122,9 @@ public final class SerializationTests {
 
         assertDoesNotThrow(() -> NBTSerialization.deserialize(nbt, value));
 
+        assertEquals(123, value.nonTransientInt);
+        assertEquals(345, value.transientInt);
+        assertEquals(678, value.finalInt);
         assertArrayEquals(new int[]{8, 7, 6}, value.finalIntArray);
     }
 

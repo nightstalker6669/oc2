@@ -3,7 +3,6 @@
 package li.cil.oc2.common.item;
 
 import li.cil.oc2.api.API;
-import li.cil.oc2.client.renderer.entity.RobotWithoutLevelRenderer;
 import li.cil.oc2.common.Config;
 import li.cil.oc2.common.bus.device.DeviceTypes;
 import li.cil.oc2.common.energy.EnergyStorageItemStack;
@@ -14,8 +13,6 @@ import li.cil.oc2.common.util.ItemStackUtils;
 import li.cil.oc2.common.util.LevelUtils;
 import li.cil.oc2.common.util.NBTUtils;
 import li.cil.oc2.common.util.TooltipUtils;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -23,8 +20,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -32,18 +29,16 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
+import li.cil.oc2.common.capabilities.CapabilityProvider;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.function.Consumer;
 
 import static li.cil.oc2.common.Constants.*;
 import static li.cil.oc2.common.util.NBTUtils.makeInventoryTag;
 
 public final class RobotItem extends ModItem {
-    public void fillItemCategory(final CreativeModeTab tab, final NonNullList<ItemStack> items) {
+    public void appendCreativeTabItems(final NonNullList<ItemStack> items) {
         items.add(getRobotWithFlash());
     }
 
@@ -56,7 +51,7 @@ public final class RobotItem extends ModItem {
     }
 
     @Nullable
-    public ICapabilityProvider initCapabilities(final ItemStack stack, @Nullable final CompoundTag nbt) {
+    public CapabilityProvider initCapabilities(final ItemStack stack, @Nullable final CompoundTag nbt) {
         if (Config.robotsUseEnergy()) {
             return new EnergyStorageItemStack(stack, Config.robotEnergyStorage, MOD_TAG_NAME, ENERGY_TAG_NAME);
         } else {
@@ -94,13 +89,15 @@ public final class RobotItem extends ModItem {
             level.addFreshEntity(robot);
             LevelUtils.playSound(level, BlockPos.containing(position), SoundType.METAL, SoundType::getPlaceSound);
 
-            if (context.getPlayer() == null || !context.getPlayer().isCreative()) {
+            final Player player = context.getPlayer();
+            if (player == null || !player.isCreative()) {
                 context.getItemInHand().shrink(1);
             }
         }
 
-        if (context.getPlayer() != null) {
-            context.getPlayer().awardStat(Stats.ITEM_USED.get(this));
+        final Player player = context.getPlayer();
+        if (player != null) {
+            player.awardStat(Stats.ITEM_USED.get(this));
         }
 
         return InteractionResult.sidedSuccess(level.isClientSide());
@@ -109,18 +106,6 @@ public final class RobotItem extends ModItem {
     @Override
     public boolean canFitInsideContainerItems() {
         return false;
-    }
-
-    ///////////////////////////////////////////////////////////////////
-
-    @Override
-    public void initializeClient(final Consumer<IClientItemExtensions> consumer) {
-        consumer.accept(new IClientItemExtensions() {
-            @Override
-            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
-                return new RobotWithoutLevelRenderer(Minecraft.getInstance().getBlockEntityRenderDispatcher(), Minecraft.getInstance().getEntityModels());
-            }
-        });
     }
 
     ///////////////////////////////////////////////////////////////////

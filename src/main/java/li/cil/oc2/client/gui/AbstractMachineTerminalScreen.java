@@ -168,8 +168,8 @@ public abstract class AbstractMachineTerminalScreen<T extends AbstractMachineTer
 
     ///////////////////////////////////////////////////////////////////
 
-    // We use this text box to indicate to Forge that we want all input, and event handlers should not be allowed
-    // to steal input from us (e.g. via custom key bindings). Since Forge is lazy and just uses getDeclaredFields
+    // We use this text box to indicate to NeoForge-integrated input handling that we want all input, and event handlers should not be allowed
+    // to steal input from us (e.g. via custom key bindings). Since the scan just uses getDeclaredFields
     // to get private fields, which completely skips fields in base classes, we require subclasses to hold the field...
     protected abstract void setFocusIndicatorEditBox(final EditBox editBox);
 

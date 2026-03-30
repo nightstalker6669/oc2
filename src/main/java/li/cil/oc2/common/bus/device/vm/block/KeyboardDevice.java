@@ -51,7 +51,11 @@ public final class KeyboardDevice<T> extends IdentityProxy<T> implements VMDevic
             return VMDeviceLoadResult.fail();
         }
 
-        assert device != null;
+        final VirtIOKeyboardDevice device = this.device;
+        if (device == null) {
+            return VMDeviceLoadResult.fail();
+        }
+
         if (!address.claim(context, device)) {
             return VMDeviceLoadResult.fail();
         }

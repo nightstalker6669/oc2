@@ -8,7 +8,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 
 import javax.annotation.Nullable;
 
-@SuppressWarnings("LocalCanBeFinal")
 public final class BlockEntityUtils {
     @SuppressWarnings("unchecked")
     @Nullable

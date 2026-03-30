@@ -72,22 +72,27 @@ public final class RobotMovementAction extends AbstractRobotAction {
             origin = robot.blockPosition();
             start = origin;
             target = start;
+            final MovementDirection direction = this.direction;
             if (direction != null) {
+                BlockPos currentTarget = Objects.requireNonNull(target);
                 switch (direction) {
-                    case UPWARD -> target = target.relative(Direction.UP);
-                    case DOWNWARD -> target = target.relative(Direction.DOWN);
-                    case FORWARD -> target = target.relative(robot.getDirection());
-                    case BACKWARD -> target = target.relative(robot.getDirection().getOpposite());
+                    case UPWARD, upward, up, u -> currentTarget = currentTarget.relative(Direction.UP);
+                    case DOWNWARD, downward, down, d -> currentTarget = currentTarget.relative(Direction.DOWN);
+                    case FORWARD, forward, ahead, f -> currentTarget = currentTarget.relative(robot.getDirection());
+                    case BACKWARD, backward, back, b -> currentTarget = currentTarget.relative(robot.getDirection().getOpposite());
                 }
+                target = currentTarget;
             }
         }
 
-        targetPos = getTargetPositionInBlock(target);
-        robot.getEntityData().set(Robot.TARGET_POSITION, target);
+        final BlockPos currentTarget = Objects.requireNonNull(target);
+        targetPos = getTargetPositionInBlock(currentTarget);
+        robot.getEntityData().set(Robot.TARGET_POSITION, currentTarget);
     }
 
     @Override
     public RobotActionResult perform(final Robot robot) {
+        final Vec3 targetPos = this.targetPos;
         if (targetPos == null) {
             throw new IllegalStateException();
         }
@@ -129,9 +134,8 @@ public final class RobotMovementAction extends AbstractRobotAction {
     public void deserialize(final CompoundTag tag) {
         super.deserialize(tag);
 
-        direction = NBTUtils.getEnum(tag, DIRECTION_TAG_NAME, MovementDirection.class);
-        if (direction == null) direction = MovementDirection.FORWARD;
-        direction = direction.resolve();
+        final MovementDirection direction = NBTUtils.getEnum(tag, DIRECTION_TAG_NAME, MovementDirection.class);
+        this.direction = (direction != null ? direction : MovementDirection.FORWARD).resolve();
         if (tag.contains(ORIGIN_TAG_NAME, NBTTagIds.TAG_COMPOUND)) {
             origin = NbtUtils.readBlockPos(tag, ORIGIN_TAG_NAME).orElse(null);
         }
@@ -151,17 +155,20 @@ public final class RobotMovementAction extends AbstractRobotAction {
             return;
         }
 
-        moveTowards(robot, targetPos);
+        final BlockPos currentStart = Objects.requireNonNull(start);
+        final BlockPos currentTarget = Objects.requireNonNull(target);
+        final Vec3 currentTargetPos = Objects.requireNonNull(targetPos);
+
+        moveTowards(robot, currentTargetPos);
 
         final boolean didCollide = robot.horizontalCollision || robot.verticalCollision;
         final long gameTime = robot.level().getGameTime();
         if (didCollide && !robot.level().isClientSide()
             && robot.getLastPistonMovement() < gameTime - 1) {
-            final BlockPos newStart = target;
-            target = start;
-            start = newStart;
-            targetPos = getTargetPositionInBlock(target);
-            robot.getEntityData().set(Robot.TARGET_POSITION, target);
+            start = currentTarget;
+            target = currentStart;
+            targetPos = getTargetPositionInBlock(currentStart);
+            robot.getEntityData().set(Robot.TARGET_POSITION, currentStart);
         }
     }
 
@@ -172,22 +179,26 @@ public final class RobotMovementAction extends AbstractRobotAction {
             return;
         }
 
+        final BlockPos currentStart = Objects.requireNonNull(start);
+        final BlockPos currentTarget = Objects.requireNonNull(target);
+
         // Got pushed out of our original path. Adjust start and target by the least offset.
-        final BlockPos fromStart = currentPosition.subtract(start);
-        final BlockPos fromTarget = currentPosition.subtract(target);
+        final BlockPos fromStart = currentPosition.subtract(currentStart);
+        final BlockPos fromTarget = currentPosition.subtract(currentTarget);
 
         final int deltaStart = fromStart.getX() + fromStart.getY() + fromStart.getZ();
         final int deltaTarget = fromTarget.getX() + fromTarget.getY() + fromTarget.getZ();
 
         if (deltaStart < deltaTarget) {
             start = currentPosition;
-            target = target.offset(fromStart);
+            target = currentTarget.offset(fromStart);
         } else {
-            start = start.offset(fromTarget);
+            start = currentStart.offset(fromTarget);
             target = currentPosition;
         }
 
-        targetPos = getTargetPositionInBlock(target);
-        robot.getEntityData().set(Robot.TARGET_POSITION, target);
+        final BlockPos updatedTarget = Objects.requireNonNull(target);
+        targetPos = getTargetPositionInBlock(updatedTarget);
+        robot.getEntityData().set(Robot.TARGET_POSITION, updatedTarget);
     }
 }

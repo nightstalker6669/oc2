@@ -68,19 +68,13 @@ public final class BusInterfaceItem extends ModBlockItem {
         return getOrCreateDescriptionId();
     }
 
-    public void fillItemCategory(final CreativeModeTab tab, final NonNullList<ItemStack> items) {
+    public void appendCreativeTabItems(final NonNullList<ItemStack> items) {
         items.add(new ItemStack(this));
     }
 
     @Override
     public void registerBlocks(final Map<Block, Item> map, final Item item) {
     }
-
-    @Override
-    public void removeFromBlockToItemMap(final Map<Block, Item> map, final Item item) {
-    }
-
-    ///////////////////////////////////////////////////////////////////
 
     @Nullable
     @Override
@@ -115,7 +109,8 @@ public final class BusInterfaceItem extends ModBlockItem {
             CriteriaTriggers.PLACED_BLOCK.trigger(serverPlayer, pos, stack);
         }
 
-        LevelUtils.playSound(level, pos, state.getSoundType(level, pos, player), SoundType::getPlaceSound);
+        final SoundType soundType = player != null ? state.getSoundType(level, pos, player) : state.getSoundType();
+        LevelUtils.playSound(level, pos, soundType, SoundType::getPlaceSound);
 
         if (player == null || !player.getAbilities().instabuild) {
             stack.shrink(1);

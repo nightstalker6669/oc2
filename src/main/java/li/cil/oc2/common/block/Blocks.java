@@ -3,26 +3,26 @@
 package li.cil.oc2.common.block;
 
 import li.cil.oc2.common.util.RegistryUtils;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class Blocks {
-    private static final DeferredRegister<Block> BLOCKS = RegistryUtils.getInitializerFor(ForgeRegistries.BLOCKS);
+    private static final DeferredRegister<Block> BLOCKS = RegistryUtils.getInitializerFor(Registries.BLOCK);
 
     ///////////////////////////////////////////////////////////////////
 
-    public static final RegistryObject<BusCableBlock> BUS_CABLE = BLOCKS.register("bus_cable", BusCableBlock::new);
-    public static final RegistryObject<ChargerBlock> CHARGER = BLOCKS.register("charger", ChargerBlock::new);
-    public static final RegistryObject<ComputerBlock> COMPUTER = BLOCKS.register("computer", ComputerBlock::new);
-    public static final RegistryObject<CreativeEnergyBlock> CREATIVE_ENERGY = BLOCKS.register("creative_energy", CreativeEnergyBlock::new);
-    public static final RegistryObject<DiskDriveBlock> DISK_DRIVE = BLOCKS.register("disk_drive", DiskDriveBlock::new);
-    public static final RegistryObject<KeyboardBlock> KEYBOARD = BLOCKS.register("keyboard", KeyboardBlock::new);
-    public static final RegistryObject<NetworkConnectorBlock> NETWORK_CONNECTOR = BLOCKS.register("network_connector", NetworkConnectorBlock::new);
-    public static final RegistryObject<NetworkHubBlock> NETWORK_HUB = BLOCKS.register("network_hub", NetworkHubBlock::new);
-    public static final RegistryObject<ProjectorBlock> PROJECTOR = BLOCKS.register("projector", ProjectorBlock::new);
-    public static final RegistryObject<RedstoneInterfaceBlock> REDSTONE_INTERFACE = BLOCKS.register("redstone_interface", RedstoneInterfaceBlock::new);
+    public static final DeferredHolder<Block, BusCableBlock> BUS_CABLE = BLOCKS.register("bus_cable", () -> new BusCableBlock());
+    public static final DeferredHolder<Block, ChargerBlock> CHARGER = BLOCKS.register("charger", ChargerBlock::new);
+    public static final DeferredHolder<Block, ComputerBlock> COMPUTER = BLOCKS.register("computer", () -> new ComputerBlock());
+    public static final DeferredHolder<Block, CreativeEnergyBlock> CREATIVE_ENERGY = BLOCKS.register("creative_energy", CreativeEnergyBlock::new);
+    public static final DeferredHolder<Block, DiskDriveBlock> DISK_DRIVE = BLOCKS.register("disk_drive", () -> new DiskDriveBlock());
+    public static final DeferredHolder<Block, KeyboardBlock> KEYBOARD = BLOCKS.register("keyboard", () -> new KeyboardBlock());
+    public static final DeferredHolder<Block, NetworkConnectorBlock> NETWORK_CONNECTOR = BLOCKS.register("network_connector", () -> new NetworkConnectorBlock());
+    public static final DeferredHolder<Block, NetworkHubBlock> NETWORK_HUB = BLOCKS.register("network_hub", () -> new NetworkHubBlock());
+    public static final DeferredHolder<Block, ProjectorBlock> PROJECTOR = BLOCKS.register("projector", () -> new ProjectorBlock());
+    public static final DeferredHolder<Block, RedstoneInterfaceBlock> REDSTONE_INTERFACE = BLOCKS.register("redstone_interface", () -> new RedstoneInterfaceBlock());
 
     ///////////////////////////////////////////////////////////////////
 

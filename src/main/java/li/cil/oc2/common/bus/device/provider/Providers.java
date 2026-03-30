@@ -7,31 +7,31 @@ import li.cil.oc2.api.bus.device.provider.ItemDeviceProvider;
 import li.cil.oc2.common.bus.device.provider.block.BlockEntityCapabilityDeviceProvider;
 import li.cil.oc2.common.bus.device.provider.item.*;
 import li.cil.oc2.common.bus.device.rpc.block.*;
-import net.minecraftforge.registries.IForgeRegistry;
+import li.cil.oc2.common.registry.RegistryView;
 
 import javax.annotation.Nullable;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 public final class Providers {
-    @Nullable private static Supplier<IForgeRegistry<BlockDeviceProvider>> blockDeviceProviderRegistryOverride;
-    @Nullable private static Supplier<IForgeRegistry<ItemDeviceProvider>> itemDeviceProviderRegistryOverride;
+    @Nullable private static Supplier<RegistryView<BlockDeviceProvider>> blockDeviceProviderRegistryOverride;
+    @Nullable private static Supplier<RegistryView<ItemDeviceProvider>> itemDeviceProviderRegistryOverride;
 
-    public static IForgeRegistry<BlockDeviceProvider> blockDeviceProviderRegistry() {
-        final Supplier<IForgeRegistry<BlockDeviceProvider>> override = blockDeviceProviderRegistryOverride;
+    public static RegistryView<BlockDeviceProvider> blockDeviceProviderRegistry() {
+        final Supplier<RegistryView<BlockDeviceProvider>> override = blockDeviceProviderRegistryOverride;
         return override != null ? override.get() : ProviderRegistry.BLOCK_DEVICE_PROVIDER_REGISTRY.get();
     }
 
-    public static IForgeRegistry<ItemDeviceProvider> itemDeviceProviderRegistry() {
-        final Supplier<IForgeRegistry<ItemDeviceProvider>> override = itemDeviceProviderRegistryOverride;
+    public static RegistryView<ItemDeviceProvider> itemDeviceProviderRegistry() {
+        final Supplier<RegistryView<ItemDeviceProvider>> override = itemDeviceProviderRegistryOverride;
         return override != null ? override.get() : ProviderRegistry.ITEM_DEVICE_PROVIDER_REGISTRY.get();
     }
 
-    public static void setBlockDeviceProviderRegistryOverride(@Nullable final Supplier<IForgeRegistry<BlockDeviceProvider>> override) {
+    public static void setBlockDeviceProviderRegistryOverride(@Nullable final Supplier<RegistryView<BlockDeviceProvider>> override) {
         blockDeviceProviderRegistryOverride = override;
     }
 
-    public static void setItemDeviceProviderRegistryOverride(@Nullable final Supplier<IForgeRegistry<ItemDeviceProvider>> override) {
+    public static void setItemDeviceProviderRegistryOverride(@Nullable final Supplier<RegistryView<ItemDeviceProvider>> override) {
         itemDeviceProviderRegistryOverride = override;
     }
 

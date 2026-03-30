@@ -15,6 +15,7 @@ import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -45,8 +46,8 @@ public abstract class LevelRendererMixin {
     @Nullable
     private RenderTarget weatherTargetBak;
 
-    @Shadow
-    protected abstract void renderSnowAndRain(final LightTexture lightTexture, final float partialTicks, final double cameraX, final double cameraY, final double cameraZ);
+    @Invoker("renderSnowAndRain")
+    protected abstract void invokeRenderSnowAndRain(final LightTexture lightTexture, final float partialTicks, final double cameraX, final double cameraY, final double cameraZ);
 
     @Inject(method = "renderLevel", at = @At("HEAD"))
     private void prepareDepthRendering(final CallbackInfo ci) {
@@ -91,7 +92,7 @@ public abstract class LevelRendererMixin {
             // We do want particles and weather (rain) though, because that's a neat effect.
             minecraft.particleEngine.render(lightTexture, camera, partialTicks, cullingFrustum, renderType -> true);
             final Vec3 cameraPosition = camera.getPosition();
-            renderSnowAndRain(lightTexture, partialTicks, cameraPosition.x(), cameraPosition.y(), cameraPosition.z());
+            invokeRenderSnowAndRain(lightTexture, partialTicks, cameraPosition.x(), cameraPosition.y(), cameraPosition.z());
 
             // Clean up anything regular return would also clean up.
             RenderSystem.depthMask(true);

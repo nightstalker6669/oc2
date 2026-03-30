@@ -6,7 +6,6 @@ import li.cil.oc2.api.bus.device.ItemDevice;
 import li.cil.oc2.api.bus.device.rpc.RPCDevice;
 import li.cil.oc2.api.bus.device.vm.VMDevice;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraftforge.registries.IForgeRegistryEntry;
 
 import javax.annotation.Nullable;
 import java.util.Optional;
@@ -27,12 +26,13 @@ import java.util.Optional;
  * are registered. For example:
  * <pre>
  * class YourModInitialization {
- *     static DeferredRegister&lt;ItemDeviceProvider&gt; ITEM_DEVICE_PROVIDERS = DeferredRegister.create(ItemDeviceProvider.REGISTRY, "your_mod_id");
+ *     static DeferredRegister&lt;ItemDeviceProvider&gt; ITEM_DEVICE_PROVIDERS =
+ *         DeferredRegister.create(Registries.ITEM_DEVICE_PROVIDER, "your_mod_id");
  *
- *     static void initialize() {
+ *     static void initialize(final IEventBus modEventBus) {
  *         ITEM_DEVICE_PROVIDERS.register("your_item_device_name", YourItemDeviceProvider::new);
  *
- *         ITEM_DEVICE_PROVIDERS.register(FMLJavaModLoadingContext.get().getModEventBus());
+ *         ITEM_DEVICE_PROVIDERS.register(modEventBus);
  *     }
  * }
  * </pre>
@@ -42,7 +42,7 @@ import java.util.Optional;
  * @see li.cil.oc2.api.bus.device.vm.VMDevice
  * @see ItemDeviceQuery
  */
-public interface ItemDeviceProvider extends IForgeRegistryEntry<ItemDeviceProvider> {
+public interface ItemDeviceProvider {
     /**
      * Get a device for the specified query.
      *

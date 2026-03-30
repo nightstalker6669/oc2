@@ -3,7 +3,9 @@
 package li.cil.oc2.common.blockentity;
 
 import li.cil.oc2.api.API;
-import li.cil.oc2.common.util.LazyOptionalUtils;
+import li.cil.oc2.common.capabilities.CapabilityRef;
+import li.cil.oc2.common.util.LazyValue;
+import li.cil.oc2.common.util.LazyValueUtils;
 import li.cil.oc2.common.util.ServerScheduler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -12,8 +14,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -22,7 +22,7 @@ import java.util.HashMap;
 
 public abstract class ModBlockEntity extends BlockEntity {
     private final Runnable onWorldUnloaded = this::onWorldUnloaded;
-    private final HashMap<CapabilityCacheKey, LazyOptional<?>> capabilityCache = new HashMap<>();
+    private final HashMap<CapabilityCacheKey, LazyValue<?>> capabilityCache = new HashMap<>();
     private boolean needsWorldUnloadEvent;
     private boolean isUnloaded;
     @Nullable private HolderLookup.Provider currentRegistries;
@@ -36,17 +36,17 @@ public abstract class ModBlockEntity extends BlockEntity {
     ///////////////////////////////////////////////////////////////////
 
     @Nonnull
-    public <T> LazyOptional<T> getCapability(final Capability<T> capability, @Nullable final Direction side) {
+    public <T> LazyValue<T> getCapability(final CapabilityRef<T> capability, @Nullable final Direction side) {
         if (!isValid()) {
-            return LazyOptional.empty();
+            return LazyValue.empty();
         }
 
         final CapabilityCacheKey key = new CapabilityCacheKey(capability, side);
-        LazyOptional<?> value;
+        LazyValue<?> value;
         if (capabilityCache.containsKey(key)) {
             value = capabilityCache.get(key);
         } else {
-            value = LazyOptional.empty();
+            value = LazyValue.empty();
         }
 
         if (!value.isPresent()) {
@@ -54,7 +54,7 @@ public abstract class ModBlockEntity extends BlockEntity {
             collectCapabilities(new CapabilityCollector() {
                 @SuppressWarnings("unchecked")
                 @Override
-                public <TOffered> void offer(final Capability<TOffered> offeredCapability, final TOffered instance) {
+                public <TOffered> void offer(final CapabilityRef<TOffered> offeredCapability, final TOffered instance) {
                     if (offeredCapability == capability) {
                         list.add((T) instance);
                     }
@@ -63,14 +63,14 @@ public abstract class ModBlockEntity extends BlockEntity {
 
             if (!list.isEmpty()) {
                 final T instance = list.get(0);
-                value = LazyOptional.of(() -> instance);
+                value = LazyValue.of(() -> instance);
             } else {
-                value = LazyOptional.empty();
+                value = LazyValue.empty();
             }
 
             if (value.isPresent()) {
                 capabilityCache.put(key, value);
-                LazyOptionalUtils.addWeakListener(value, capabilityCache, (map, optional) -> map.remove(key, optional));
+                LazyValueUtils.addWeakListener(value, capabilityCache, (map, optional) -> map.remove(key, optional));
             }
         }
 
@@ -81,6 +81,7 @@ public abstract class ModBlockEntity extends BlockEntity {
     public void onLoad() {
         super.onLoad();
 
+        final var level = this.level;
         if (level == null) {
             return;
         }
@@ -122,9 +123,9 @@ public abstract class ModBlockEntity extends BlockEntity {
 
     ///////////////////////////////////////////////////////////////////
 
-    protected <T> void invalidateCapability(final Capability<T> capability, @Nullable final Direction direction) {
+    protected <T> void invalidateCapability(final CapabilityRef<T> capability, @Nullable final Direction direction) {
         final CapabilityCacheKey key = new CapabilityCacheKey(capability, direction);
-        final LazyOptional<?> value = capabilityCache.get(key);
+        final LazyValue<?> value = capabilityCache.get(key);
         if (value != null) {
             value.invalidate();
         }
@@ -134,7 +135,7 @@ public abstract class ModBlockEntity extends BlockEntity {
         invalidateCapabilities();
 
         // Copy values because invalidate callback will modify map (removes invalidated entry).
-        for (final LazyOptional<?> capability : new ArrayList<>(capabilityCache.values())) {
+        for (final LazyValue<?> capability : new ArrayList<>(capabilityCache.values())) {
             capability.invalidate();
         }
     }
@@ -182,6 +183,7 @@ public abstract class ModBlockEntity extends BlockEntity {
     }
 
     protected void onUnload(final boolean isRemove) {
+        final var level = this.level;
         if (level != null && !level.isClientSide()) {
             unloadServer(isRemove);
             ServerScheduler.cancelOnUnload(level, onWorldUnloaded);
@@ -232,10 +234,10 @@ public abstract class ModBlockEntity extends BlockEntity {
 
     @FunctionalInterface
     protected interface CapabilityCollector {
-        <T> void offer(Capability<T> capability, T instance);
+        <T> void offer(CapabilityRef<T> capability, T instance);
     }
 
     ///////////////////////////////////////////////////////////////////
 
-    private record CapabilityCacheKey(Capability<?> capability, @Nullable Direction direction) { }
+    private record CapabilityCacheKey(CapabilityRef<?> capability, @Nullable Direction direction) { }
 }

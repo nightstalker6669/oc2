@@ -16,6 +16,10 @@ import li.cil.oc2.api.util.Invalidatable;
 import li.cil.oc2.common.Constants;
 import li.cil.oc2.common.bus.device.provider.Providers;
 import li.cil.oc2.common.capabilities.Capabilities;
+import li.cil.oc2.common.capabilities.CapabilityProvider;
+import li.cil.oc2.common.capabilities.CapabilityRef;
+import li.cil.oc2.common.registry.RegistryView;
+import li.cil.oc2.common.util.LazyValue;
 import li.cil.sedna.api.device.serial.SerialDevice;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -26,15 +30,11 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.registries.IForgeRegistry;
-import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.BiFunction;
 
@@ -51,11 +51,10 @@ public class BlockDeviceBusControllerTests {
 
     ///////////////////////////////////////////////////////////////////
 
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     @BeforeEach
     public void setupEach() {
-        final IForgeRegistry<BlockDeviceProvider> blockDeviceProviderRegistry = createBlockDeviceProviderRegistry();
-        final IForgeRegistry<ItemDeviceProvider> itemDeviceProviderRegistry = createItemDeviceProviderRegistry();
+        final RegistryView<BlockDeviceProvider> blockDeviceProviderRegistry = createBlockDeviceProviderRegistry();
+        final RegistryView<ItemDeviceProvider> itemDeviceProviderRegistry = createItemDeviceProviderRegistry();
         Providers.setBlockDeviceProviderRegistryOverride(() -> blockDeviceProviderRegistry);
         Providers.setItemDeviceProviderRegistryOverride(() -> itemDeviceProviderRegistry);
 
@@ -483,26 +482,36 @@ public class BlockDeviceBusControllerTests {
     ///////////////////////////////////////////////////////////////////
 
     @SuppressWarnings("unchecked")
-    private static IForgeRegistry<BlockDeviceProvider> createBlockDeviceProviderRegistry() {
-        final IForgeRegistry<BlockDeviceProvider> registry = mock(IForgeRegistry.class);
+    private static RegistryView<BlockDeviceProvider> createBlockDeviceProviderRegistry() {
+        final RegistryView<BlockDeviceProvider> registry = mock(RegistryView.class);
 
         final Map<ResourceLocation, BlockDeviceProvider> blockDeviceProviders = new HashMap<>();
         blockDeviceProviders.put(TEST_PROVIDER_REGISTRY_NAME, spy(new TestBlockDeviceProvider()));
 
         when(registry.getValues()).thenReturn(blockDeviceProviders.values());
+        when(registry.getKey(notNull())).then(a -> blockDeviceProviders.entrySet().stream()
+            .filter(entry -> entry.getValue() == a.getArgument(0))
+            .map(Map.Entry::getKey)
+            .findFirst()
+            .orElse(null));
         when(registry.getValue(notNull())).then(a -> blockDeviceProviders.get(a.<ResourceLocation>getArgument(0)));
 
         return registry;
     }
 
     @SuppressWarnings("unchecked")
-    private static IForgeRegistry<ItemDeviceProvider> createItemDeviceProviderRegistry() {
-        final IForgeRegistry<ItemDeviceProvider> registry = mock(IForgeRegistry.class);
+    private static RegistryView<ItemDeviceProvider> createItemDeviceProviderRegistry() {
+        final RegistryView<ItemDeviceProvider> registry = mock(RegistryView.class);
 
         final Map<ResourceLocation, ItemDeviceProvider> itemDeviceProviders = new HashMap<>();
         itemDeviceProviders.put(TEST_PROVIDER_REGISTRY_NAME, spy(new TestItemDeviceProvider()));
 
         when(registry.getValues()).thenReturn(itemDeviceProviders.values());
+        when(registry.getKey(notNull())).then(a -> itemDeviceProviders.entrySet().stream()
+            .filter(entry -> entry.getValue() == a.getArgument(0))
+            .map(Map.Entry::getKey)
+            .findFirst()
+            .orElse(null));
         when(registry.getValue(notNull())).then(a -> itemDeviceProviders.get(a.<ResourceLocation>getArgument(0)));
 
         return registry;
@@ -563,14 +572,14 @@ public class BlockDeviceBusControllerTests {
         }
     }
 
-    private final class TestCapabilityBlockEntity extends BlockEntity implements ICapabilityProvider {
-        private BiFunction<Capability<?>, Direction, LazyOptional<?>> capabilityProvider = (capability, side) -> LazyOptional.empty();
+    private final class TestCapabilityBlockEntity extends BlockEntity implements CapabilityProvider {
+        private BiFunction<CapabilityRef<?>, Direction, LazyValue<?>> capabilityProvider = (capability, side) -> LazyValue.empty();
 
         public TestCapabilityBlockEntity(final BlockPos pos) {
             super(null, pos, null);
         }
 
-        public void setCapabilityProvider(final BiFunction<Capability<?>, Direction, LazyOptional<?>> capabilityProvider) {
+        public void setCapabilityProvider(final BiFunction<CapabilityRef<?>, Direction, LazyValue<?>> capabilityProvider) {
             this.capabilityProvider = capabilityProvider;
         }
 
@@ -581,9 +590,9 @@ public class BlockDeviceBusControllerTests {
 
         @Override
         @SuppressWarnings("unchecked")
-        public <T> LazyOptional<T> getCapability(final Capability<T> capability, @Nullable final Direction side) {
-            final LazyOptional<?> value = capabilityProvider.apply(capability, side);
-            return value != null ? value.cast() : LazyOptional.empty();
+        public <T> LazyValue<T> getCapability(final CapabilityRef<T> capability, @Nullable final Direction side) {
+            final LazyValue<?> value = capabilityProvider.apply(capability, side);
+            return value != null ? value.cast() : LazyValue.empty();
         }
     }
 
@@ -596,9 +605,9 @@ public class BlockDeviceBusControllerTests {
             busElement = spy(new TestBlockDeviceBusElement(level, pos));
             getBlockEntity().setCapabilityProvider((capability, side) -> {
                 if (capability == Capabilities.deviceBusElement() && side != null && enabledSides[side.get3DDataValue()]) {
-                    return LazyOptional.of(() -> busElement);
+                    return LazyValue.of(() -> busElement);
                 }
-                return LazyOptional.empty();
+                return LazyValue.empty();
             });
             Arrays.fill(enabledSides, true);
         }
@@ -634,7 +643,7 @@ public class BlockDeviceBusControllerTests {
             testDevice = new TestDevice();
             objectDevice = new ObjectDevice(testDevice);
             getBlockEntity().setCapabilityProvider((capability, side) ->
-                capability == Capabilities.device() ? LazyOptional.of(() -> objectDevice) : LazyOptional.empty());
+                capability == Capabilities.device() ? LazyValue.of(() -> objectDevice) : LazyValue.empty());
         }
 
         public TestDevice getTestDevice() {
@@ -676,22 +685,6 @@ public class BlockDeviceBusControllerTests {
 
     private static class TestBlockDeviceProvider implements BlockDeviceProvider {
         @Override
-        public BlockDeviceProvider setRegistryName(final ResourceLocation name) {
-            return this;
-        }
-
-        @Nullable
-        @Override
-        public ResourceLocation getRegistryName() {
-            return TEST_PROVIDER_REGISTRY_NAME;
-        }
-
-        @Override
-        public Class<BlockDeviceProvider> getRegistryType() {
-            return BlockDeviceProvider.class;
-        }
-
-        @Override
         public Invalidatable<Device> getDevice(final BlockDeviceQuery query) {
             final LevelAccessor level = query.getLevel();
             final BlockEntity blockEntity = level.getBlockEntity(query.getQueryPosition());
@@ -704,22 +697,6 @@ public class BlockDeviceBusControllerTests {
     }
 
     private static class TestItemDeviceProvider implements ItemDeviceProvider {
-        @Override
-        public ItemDeviceProvider setRegistryName(final ResourceLocation name) {
-            return this;
-        }
-
-        @Nullable
-        @Override
-        public ResourceLocation getRegistryName() {
-            return TEST_PROVIDER_REGISTRY_NAME;
-        }
-
-        @Override
-        public Class<ItemDeviceProvider> getRegistryType() {
-            return ItemDeviceProvider.class;
-        }
-
         @Override
         public Optional<ItemDevice> getDevice(final ItemDeviceQuery query) {
             return Optional.empty();

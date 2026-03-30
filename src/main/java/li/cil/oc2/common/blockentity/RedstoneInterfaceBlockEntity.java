@@ -14,6 +14,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nullable;
@@ -58,7 +59,9 @@ public final class RedstoneInterfaceBlockEntity extends ModBlockEntity implement
 
     public int getOutputForDirection(final Direction direction) {
         final Direction localDirection = HorizontalBlockUtils.toLocal(getBlockState(), direction);
-        assert localDirection != null;
+        if (localDirection == null) {
+            return 0;
+        }
 
         return output[localDirection.get3DDataValue()];
     }
@@ -67,13 +70,16 @@ public final class RedstoneInterfaceBlockEntity extends ModBlockEntity implement
     public int getRedstoneInput(@Parameter(SIDE) @Nullable final Side side) {
         if (side == null) throw new IllegalArgumentException();
 
+        final Level level = this.level;
         if (level == null) {
             return 0;
         }
 
         final BlockPos pos = getBlockPos();
         final Direction direction = HorizontalBlockUtils.toGlobal(getBlockState(), side);
-        assert direction != null;
+        if (direction == null) {
+            return 0;
+        }
 
         final BlockPos neighborPos = pos.relative(direction);
         final ChunkPos chunkPos = new ChunkPos(neighborPos);
@@ -146,6 +152,7 @@ public final class RedstoneInterfaceBlockEntity extends ModBlockEntity implement
     ///////////////////////////////////////////////////////////////////
 
     private void notifyNeighbor(final Direction direction) {
+        final Level level = this.level;
         if (level == null) {
             return;
         }

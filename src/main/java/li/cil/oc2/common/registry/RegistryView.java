@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 
-package net.minecraftforge.registries;
+package li.cil.oc2.common.registry;
 
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
@@ -10,14 +10,14 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Set;
 
-public interface IForgeRegistry<T> {
+public interface RegistryView<T> {
     ResourceKey<? extends Registry<T>> getRegistryKey();
 
     @Nullable
-    ResourceLocation getKey(T value);
+    ResourceLocation getKey(@Nullable T value);
 
     @Nullable
-    T getValue(ResourceLocation location);
+    T getValue(@Nullable ResourceLocation location);
 
     Collection<T> getValues();
 

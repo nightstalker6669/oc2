@@ -10,6 +10,8 @@ import java.util.Optional;
  * May be fired by devices while handling {@link VMInitializingEvent} to indicate that initialization failed.
  */
 public final class VMInitializationException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
     private final Component message;
 
     ///////////////////////////////////////////////////////////////

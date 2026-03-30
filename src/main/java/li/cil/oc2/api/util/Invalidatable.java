@@ -4,6 +4,7 @@ package li.cil.oc2.api.util;
 
 import li.cil.oc2.common.util.RunnableUtils;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -38,7 +39,7 @@ public final class Invalidatable<T> {
     }
 
     private final List<Consumer<Invalidatable<T>>> listeners = new ArrayList<>();
-    private T value;
+    @Nullable private T value;
     private boolean isValid = true;
 
     public Invalidatable(final T value) {
@@ -52,11 +53,13 @@ public final class Invalidatable<T> {
 
     public T get() {
         if (isValid) {
-            assert value != null;
-            return value;
-        } else {
-            throw new IllegalStateException();
+            final T currentValue = value;
+            if (currentValue != null) {
+                return currentValue;
+            }
         }
+
+        throw new IllegalStateException();
     }
 
     public boolean isPresent() {
@@ -64,8 +67,9 @@ public final class Invalidatable<T> {
     }
 
     public void ifPresent(final Consumer<T> consumer) {
-        if (isValid) {
-            consumer.accept(value);
+        final T currentValue = value;
+        if (isValid && currentValue != null) {
+            consumer.accept(currentValue);
         }
     }
 
@@ -75,7 +79,7 @@ public final class Invalidatable<T> {
         }
 
         // Map to new type.
-        final Invalidatable<U> mapped = new Invalidatable<>(mapper.apply(value));
+        final Invalidatable<U> mapped = new Invalidatable<>(mapper.apply(get()));
 
         // When this instance gets invalidated, invalidate mapped value.
         final ListenerToken token = this.addListener(unused -> mapped.invalidate());
@@ -110,7 +114,7 @@ public final class Invalidatable<T> {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final Invalidatable<?> that = (Invalidatable<?>) o;
@@ -124,6 +128,7 @@ public final class Invalidatable<T> {
 
     @Override
     public String toString() {
-        return value != null ? value.toString() : "Invalidated";
+        final T currentValue = value;
+        return currentValue != null ? currentValue.toString() : "Invalidated";
     }
 }

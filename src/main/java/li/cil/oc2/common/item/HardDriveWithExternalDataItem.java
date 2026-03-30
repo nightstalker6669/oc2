@@ -8,7 +8,6 @@ import li.cil.oc2.common.util.ColorUtils;
 import net.minecraft.Util;
 import net.minecraft.core.NonNullList;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 
@@ -28,7 +27,7 @@ public final class HardDriveWithExternalDataItem extends AbstractBlockDeviceItem
 
     ///////////////////////////////////////////////////////////////////
 
-    public void fillItemCategory(final CreativeModeTab tab, final NonNullList<ItemStack> items) {
+    public void appendCreativeTabItems(final NonNullList<ItemStack> items) {
         items.add(new ItemStack(this));
 
         BlockDeviceDataRegistry.values().forEach(data -> {

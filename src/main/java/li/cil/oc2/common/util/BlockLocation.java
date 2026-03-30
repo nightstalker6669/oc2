@@ -7,6 +7,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
+import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.Optional;
@@ -41,7 +42,7 @@ public record BlockLocation(WeakReference<LevelAccessor> level, BlockPos blockPo
     }
 
     @Override
-    public boolean equals(final Object obj) {
+    public boolean equals(@Nullable final Object obj) {
         if (obj instanceof BlockLocation that) {
             final LevelAccessor thisLevel = level.get();
             final LevelAccessor thatLevel = that.level.get();

@@ -133,7 +133,7 @@ public final class Callbacks {
         }
 
         @Override
-        public boolean equals(final Object o) {
+        public boolean equals(@Nullable final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             final ObjectRPCMethod that = (ObjectRPCMethod) o;
@@ -213,15 +213,17 @@ public final class Callbacks {
                 this.type = parameter.getType();
 
                 final Parameter annotation = parameter.getAnnotation(Parameter.class);
-                final boolean hasName = annotation != null && Strings.isNotBlank(annotation.value());
-                final boolean hasDescription = annotation != null && Strings.isNotBlank(annotation.description());
+                final String annotationName = annotation != null ? annotation.value() : "";
+                final String annotationDescription = annotation != null ? annotation.description() : "";
+                final boolean hasName = Strings.isNotBlank(annotationName);
+                final boolean hasDescription = Strings.isNotBlank(annotationDescription);
 
-                this.name = hasName ? annotation.value() : (parameter.isNamePresent() ? parameter.getName() : null);
+                this.name = hasName ? annotationName : (parameter.isNamePresent() ? parameter.getName() : null);
 
                 if (parameterDescriptions.containsKey(this.name)) {
                     this.description = parameterDescriptions.get(this.name);
                 } else if (hasDescription) {
-                    this.description = annotation.description();
+                    this.description = annotationDescription;
                 } else {
                     this.description = null;
                 }

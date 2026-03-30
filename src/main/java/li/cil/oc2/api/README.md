@@ -372,7 +372,7 @@ Most addon mods do not need this section. It is only relevant if you are impleme
   - `void addController(DeviceBusController controller)`
   - `void removeController(DeviceBusController controller)`
   - `Collection<DeviceBusController> getControllers()`
-  - `Optional<Collection<LazyOptional<DeviceBusElement>>> getNeighbors()`
+  - `Optional<Collection<Invalidatable<DeviceBusElement>>> getNeighbors()`
   - `Collection<Device> getLocalDevices()`
   - `Optional<UUID> getDeviceIdentifier(Device device)`
   - `default double getEnergyConsumption()`
@@ -424,8 +424,6 @@ import li.cil.oc2.api.bus.device.provider.BlockDeviceProvider;
 import li.cil.oc2.api.bus.device.provider.BlockDeviceQuery;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistryEntry;
-
 public final class MyOc2Integration {
     private static final DeferredRegister<BlockDeviceProvider> BLOCK_DEVICE_PROVIDERS =
         DeferredRegister.create(Registries.BLOCK_DEVICE_PROVIDER, "my_mod");
@@ -435,7 +433,7 @@ public final class MyOc2Integration {
         BLOCK_DEVICE_PROVIDERS.register(modBus);
     }
 
-    public static final class MyBlockDeviceProvider extends ForgeRegistryEntry<BlockDeviceProvider> implements BlockDeviceProvider {
+    public static final class MyBlockDeviceProvider implements BlockDeviceProvider {
         @Override
         public Invalidatable<Device> getDevice(final BlockDeviceQuery query) {
             if (!shouldExposeDevice(query)) {
@@ -469,8 +467,6 @@ import li.cil.oc2.api.bus.device.provider.ItemDeviceProvider;
 import li.cil.oc2.api.bus.device.provider.ItemDeviceQuery;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistryEntry;
-
 import java.util.Optional;
 
 public final class MyOc2Items {
@@ -482,7 +478,7 @@ public final class MyOc2Items {
         ITEM_DEVICE_PROVIDERS.register(modBus);
     }
 
-    public static final class MyItemDeviceProvider extends ForgeRegistryEntry<ItemDeviceProvider> implements ItemDeviceProvider {
+    public static final class MyItemDeviceProvider implements ItemDeviceProvider {
         @Override
         public Optional<ItemDevice> getDevice(final ItemDeviceQuery query) {
             if (!query.getItemStack().is(MyItems.MY_CARD)) {

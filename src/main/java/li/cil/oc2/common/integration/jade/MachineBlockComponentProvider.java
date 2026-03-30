@@ -19,6 +19,9 @@ import snownee.jade.api.IBlockComponentProvider;
 import snownee.jade.api.ITooltip;
 import snownee.jade.api.config.IPluginConfig;
 
+import javax.annotation.Nullable;
+import java.util.Objects;
+
 import static li.cil.oc2.common.util.TextFormatUtils.withFormat;
 
 public final class MachineBlockComponentProvider implements IBlockComponentProvider {
@@ -34,14 +37,15 @@ public final class MachineBlockComponentProvider implements IBlockComponentProvi
     }
 
     @Override
-    public void appendTooltip(final ITooltip tooltip, final BlockAccessor accessor, final IPluginConfig config) {
-        final BlockEntity blockEntity = accessor.getBlockEntity();
+    public void appendTooltip(@Nullable final ITooltip tooltip, @Nullable final BlockAccessor accessor, @Nullable final IPluginConfig config) {
+        final ITooltip actualTooltip = Objects.requireNonNull(tooltip);
+        final BlockEntity blockEntity = Objects.requireNonNull(accessor).getBlockEntity();
         if (blockEntity == null) {
             return;
         }
 
-        addStatus(tooltip, blockEntity);
-        addEnergy(tooltip, blockEntity);
+        addStatus(actualTooltip, blockEntity);
+        addEnergy(actualTooltip, blockEntity);
     }
 
     private static void addStatus(final ITooltip tooltip, final BlockEntity blockEntity) {

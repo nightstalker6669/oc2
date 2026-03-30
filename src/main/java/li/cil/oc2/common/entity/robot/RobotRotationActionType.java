@@ -7,6 +7,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 
+import javax.annotation.Nullable;
+
 public final class RobotRotationActionType extends AbstractRobotActionType {
     public RobotRotationActionType(final int id) {
         super(id);
@@ -20,7 +22,7 @@ public final class RobotRotationActionType extends AbstractRobotActionType {
     }
 
     @Override
-    public void performServer(final Robot robot, final AbstractRobotAction currentAction) {
+    public void performServer(final Robot robot, @Nullable final AbstractRobotAction currentAction) {
         if (!(currentAction instanceof RobotRotationAction)) {
             robot.getEntityData().set(Robot.TARGET_DIRECTION, robot.getDirection());
         }

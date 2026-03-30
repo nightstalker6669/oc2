@@ -151,6 +151,8 @@ public abstract class AbstractVirtualMachine implements VirtualMachine {
                     case STOPPED:
                     case LOADING_DEVICES:
                         return bootError;
+                    case RUNNING:
+                        break;
                 }
                 break;
         }
@@ -188,6 +190,8 @@ public abstract class AbstractVirtualMachine implements VirtualMachine {
         switch (runState) {
             case LOADING_DEVICES -> load();
             case RUNNING -> run();
+            case STOPPED -> {
+            }
         }
     }
 

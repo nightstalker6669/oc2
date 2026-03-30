@@ -43,18 +43,8 @@ public final class LevelUtils {
         }
 
         final Block block = level.getBlockState(pos).getBlock();
-        {
-            final ResourceLocation registryName = BuiltInRegistries.BLOCK.getKey(block);
-            if (registryName != null) {
-                return registryName.toString();
-            }
-        }
-
-        if (blockEntity != null) {
-            return blockEntity.getClass().getSimpleName();
-        }
-
-        return block.getClass().getSimpleName();
+        final ResourceLocation registryName = BuiltInRegistries.BLOCK.getKey(block);
+        return registryName.toString();
     }
 
     public static void playSound(final LevelAccessor level, final BlockPos pos, final SoundType soundType, final Function<SoundType, SoundEvent> soundEvent) {

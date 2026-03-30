@@ -8,7 +8,6 @@ import li.cil.sedna.device.block.ByteBufferBlockDevice;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,19 +25,8 @@ public final class ResourceBlockDeviceData implements BlockDeviceData, AutoClose
         }
     }
 
-    @Override
-    public BlockDeviceData setRegistryName(final ResourceLocation name) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Nullable
-    @Override
-    public ResourceLocation getRegistryName() {
+    public ResourceLocation getLocation() {
         return location;
-    }
-
-    public Class<BlockDeviceData> getRegistryType() {
-        return BlockDeviceData.class;
     }
 
     @Override

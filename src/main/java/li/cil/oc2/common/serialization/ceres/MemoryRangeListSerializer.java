@@ -11,23 +11,25 @@ import li.cil.sedna.api.memory.MemoryRange;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
+import java.util.Objects;
 
 public final class MemoryRangeListSerializer implements Serializer<MemoryRangeList> {
     @Override
-    public void serialize(final SerializationVisitor visitor, final Class<MemoryRangeList> type, final Object value) throws SerializationException {
-        final MemoryRangeList list = (MemoryRangeList) value;
-        visitor.putObject("value", MemoryRange[].class, list.toArray(new MemoryRange[0]));
+    public void serialize(@Nullable final SerializationVisitor visitor, @Nullable final Class<MemoryRangeList> type, @Nullable final Object value) throws SerializationException {
+        final MemoryRangeList list = (MemoryRangeList) Objects.requireNonNull(value);
+        Objects.requireNonNull(visitor).putObject("value", MemoryRange[].class, list.toArray(new MemoryRange[0]));
     }
 
     @Nullable
     @Override
-    public MemoryRangeList deserialize(final DeserializationVisitor visitor, final Class<MemoryRangeList> type, @Nullable final Object value) throws SerializationException {
+    public MemoryRangeList deserialize(@Nullable final DeserializationVisitor visitor, @Nullable final Class<MemoryRangeList> type, @Nullable final Object value) throws SerializationException {
+        final DeserializationVisitor actualVisitor = Objects.requireNonNull(visitor);
         MemoryRangeList list = (MemoryRangeList) value;
-        if (!visitor.exists("value")) {
+        if (!actualVisitor.exists("value")) {
             return list;
         }
 
-        final MemoryRange[] array = (MemoryRange[]) visitor.getObject("value", MemoryRange[].class, null);
+        final MemoryRange[] array = (MemoryRange[]) actualVisitor.getObject("value", MemoryRange[].class, null);
         if (array == null) {
             return null;
         }

@@ -59,6 +59,7 @@ public final class ModLootTableProvider extends LootTableProvider {
                 .collect(Collectors.toList());
         }
 
+        @SuppressWarnings("deprecation")
         private LootTable.Builder droppingWithInventory(final Block block) {
             return LootTable.lootTable().withPool(applyExplosionCondition(block, LootPool.lootPool()
                 .setRolls(ConstantValue.exactly(1))

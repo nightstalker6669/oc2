@@ -15,6 +15,9 @@ import snownee.jade.api.IEntityComponentProvider;
 import snownee.jade.api.ITooltip;
 import snownee.jade.api.config.IPluginConfig;
 
+import javax.annotation.Nullable;
+import java.util.Objects;
+
 import static li.cil.oc2.common.util.TextFormatUtils.withFormat;
 
 public final class MachineEntityComponentProvider implements IEntityComponentProvider {
@@ -30,16 +33,17 @@ public final class MachineEntityComponentProvider implements IEntityComponentPro
     }
 
     @Override
-    public void appendTooltip(final ITooltip tooltip, final EntityAccessor accessor, final IPluginConfig config) {
-        if (!(accessor.getEntity() instanceof final Robot robot)) {
+    public void appendTooltip(@Nullable final ITooltip tooltip, @Nullable final EntityAccessor accessor, @Nullable final IPluginConfig config) {
+        final ITooltip actualTooltip = Objects.requireNonNull(tooltip);
+        if (!(Objects.requireNonNull(accessor).getEntity() instanceof final Robot robot)) {
             return;
         }
 
         final Component error = robot.getVirtualMachine().getError();
         if (error != null) {
-            tooltip.add(withFormat(error.copy(), ChatFormatting.RED), STATUS_LINE);
+            actualTooltip.add(withFormat(error.copy(), ChatFormatting.RED), STATUS_LINE);
         } else if (robot.getVirtualMachine().isRunning()) {
-            tooltip.add(withFormat(Component.translatable("tooltip.oc2.status.running"), ChatFormatting.GREEN), STATUS_LINE);
+            actualTooltip.add(withFormat(Component.translatable("tooltip.oc2.status.running"), ChatFormatting.GREEN), STATUS_LINE);
         }
 
         Capabilities.getCapability(robot, Capabilities.energyStorage(), null).ifPresent(energy -> {
@@ -48,7 +52,7 @@ public final class MachineEntityComponentProvider implements IEntityComponentPro
             }
 
             final MutableComponent value = withFormat(energy.getEnergyStored() + "/" + energy.getMaxEnergyStored(), ChatFormatting.GREEN);
-            tooltip.add(withFormat(Component.translatable(Constants.TOOLTIP_ENERGY, value), ChatFormatting.GRAY), ENERGY_LINE);
+            actualTooltip.add(withFormat(Component.translatable(Constants.TOOLTIP_ENERGY, value), ChatFormatting.GRAY), ENERGY_LINE);
         });
     }
 

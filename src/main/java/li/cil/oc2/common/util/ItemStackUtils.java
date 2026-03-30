@@ -34,12 +34,13 @@ public final class ItemStackUtils {
     }
 
     public static CompoundTag getModDataTag(final ItemStack stack) {
-        return NBTUtils.getChildTag(stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).getUnsafe(), MOD_TAG_NAME);
+        return NBTUtils.getChildTag(stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag(), MOD_TAG_NAME);
     }
 
     public static CompoundTag getOrCreateModDataTag(final ItemStack stack) {
-        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> NBTUtils.getOrCreateChildTag(tag, MOD_TAG_NAME));
-        return NBTUtils.getOrCreateChildTag(stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).getUnsafe(), MOD_TAG_NAME);
+        final CompoundTag[] result = new CompoundTag[1];
+        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> result[0] = NBTUtils.getOrCreateChildTag(tag, MOD_TAG_NAME));
+        return result[0];
     }
 
     public static CompoundTag getLegacyBlockEntityDataTag(final ItemStack stack) {
@@ -48,7 +49,7 @@ public final class ItemStackUtils {
 
     public static CompoundTag getBlockEntityDataTag(final ItemStack stack) {
         final CustomData blockEntityData = stack.getOrDefault(DataComponents.BLOCK_ENTITY_DATA, CustomData.EMPTY);
-        return blockEntityData.isEmpty() ? getLegacyBlockEntityDataTag(stack) : blockEntityData.getUnsafe();
+        return blockEntityData.isEmpty() ? getLegacyBlockEntityDataTag(stack) : blockEntityData.copyTag();
     }
 
     public static void setBlockEntityData(final ItemStack stack, final BlockEntityType<?> blockEntityType, final CompoundTag tag) {

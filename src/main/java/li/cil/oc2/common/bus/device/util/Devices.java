@@ -10,6 +10,7 @@ import li.cil.oc2.api.bus.device.provider.ItemDeviceProvider;
 import li.cil.oc2.api.bus.device.provider.ItemDeviceQuery;
 import li.cil.oc2.api.util.Invalidatable;
 import li.cil.oc2.common.bus.device.provider.Providers;
+import li.cil.oc2.common.registry.RegistryView;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
@@ -18,7 +19,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.registries.IForgeRegistry;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -57,7 +57,7 @@ public final class Devices {
             return Optional.empty();
         }
 
-        final IForgeRegistry<BlockDeviceProvider> registry = Providers.blockDeviceProviderRegistry();
+        final RegistryView<BlockDeviceProvider> registry = Providers.blockDeviceProviderRegistry();
         final ArrayList<Invalidatable<BlockDeviceInfo>> devices = new ArrayList<>();
         for (final BlockDeviceProvider provider : registry.getValues()) {
             final Invalidatable<Device> device = provider.getDevice(query);
@@ -74,7 +74,7 @@ public final class Devices {
             return Collections.emptyList();
         }
 
-        final IForgeRegistry<ItemDeviceProvider> registry = Providers.itemDeviceProviderRegistry();
+        final RegistryView<ItemDeviceProvider> registry = Providers.itemDeviceProviderRegistry();
         final ArrayList<ItemDeviceInfo> devices = new ArrayList<>();
         for (final ItemDeviceProvider provider : registry.getValues()) {
             final Optional<ItemDevice> device = provider.getDevice(query);
@@ -88,7 +88,7 @@ public final class Devices {
             return 0;
         }
 
-        final IForgeRegistry<ItemDeviceProvider> registry = Providers.itemDeviceProviderRegistry();
+        final RegistryView<ItemDeviceProvider> registry = Providers.itemDeviceProviderRegistry();
         long accumulator = 0;
         for (final ItemDeviceProvider provider : registry.getValues()) {
             accumulator += Math.max(0, provider.getEnergyConsumption(query));
