@@ -10,7 +10,7 @@ import net.minecraft.nbt.ListTag;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public abstract class AbstractGroupingDeviceBusElement<TEntry extends AbstractGroupingDeviceBusElement.Entry, TQuery> extends AbstractDeviceBusElement {
+public abstract class AbstractGroupingDeviceBusElement<TEntry extends GroupingDeviceBusEntry, TQuery> extends AbstractDeviceBusElement {
     private static final String GROUPS_TAG_NAME = "groups";
     private static final String GROUP_ID_TAG_NAME = "groupId";
     private static final String GROUP_DATA_TAG_NAME = "groupData";
@@ -21,16 +21,6 @@ public abstract class AbstractGroupingDeviceBusElement<TEntry extends AbstractGr
 
         public abstract Set<TEntry> getEntries();
     }
-
-    protected static interface Entry {
-        Optional<String> getDeviceDataKey();
-
-        OptionalInt getDeviceEnergyConsumption();
-
-        Device getDevice();
-    }
-
-    ///////////////////////////////////////////////////////////////////
 
     protected final int groupCount;
     protected final ArrayList<HashSet<TEntry>> groups;

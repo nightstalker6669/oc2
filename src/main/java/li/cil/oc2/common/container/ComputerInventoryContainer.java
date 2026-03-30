@@ -9,30 +9,20 @@ import li.cil.oc2.common.vm.VMItemStackHandlers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.MenuProvider;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.network.NetworkHooks;
 import net.neoforged.neoforge.energy.IEnergyStorage;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class ComputerInventoryContainer extends AbstractComputerContainer {
     public static void createServer(final ComputerBlockEntity computer, final IEnergyStorage energy, final CommonDeviceBusController busController, final ServerPlayer player) {
-        NetworkHooks.openGui(player, new MenuProvider() {
-            @Override
-            public Component getDisplayName() {
-                return Component.translatable(computer.getBlockState().getBlock().getDescriptionId());
-            }
-
-            @Override
-            public AbstractContainerMenu createMenu(final int id, final Inventory inventory, final Player player) {
-                return new ComputerInventoryContainer(id, computer, player, createEnergyInfo(energy, busController));
-            }
-        }, computer.getBlockPos());
+        NetworkHooks.openGui(player, new SimpleMenuProvider(
+            (id, inventory, menuPlayer) -> new ComputerInventoryContainer(id, computer, menuPlayer, createEnergyInfo(energy, busController)),
+            Component.translatable(computer.getBlockState().getBlock().getDescriptionId())
+        ), computer.getBlockPos());
     }
 
     public static ComputerInventoryContainer createClient(final int id, final Inventory playerInventory, final FriendlyByteBuf data) {

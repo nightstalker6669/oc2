@@ -70,6 +70,9 @@ public final class NetworkCableRenderer {
     }
 
     public static void renderCablesFor(final BlockAndTintGetter level, final PoseStack stack, final Vec3 eye, final NetworkConnectorBlockEntity connector) {
+        validateConnectors();
+        validatePairs();
+
         final ArrayList<Connection> connections = connectionsByConnector.get(connector);
         if (connections != null) {
             renderCables(level, stack, eye, connections, unused -> true);
@@ -113,36 +116,8 @@ public final class NetworkCableRenderer {
 
     @SubscribeEvent
     public static void handleRenderWorld(final RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_CUTOUT_BLOCKS) {
-            return;
-        }
-
-        validateConnectors();
-        validatePairs();
-
-        if (connections.isEmpty()) {
-            return;
-        }
-
-        final Minecraft client = Minecraft.getInstance();
-        final Level level = client.level;
-        if (level == null) {
-            return;
-        }
-
-        final PoseStack stack = event.getPoseStack();
-
-        final Vec3 eye = event.getCamera().getPosition();
-
-        final Frustum frustum = new Frustum(stack.last().pose(), event.getProjectionMatrix());
-        frustum.prepare(eye.x, eye.y, eye.z);
-
-        stack.pushPose();
-        stack.translate(-eye.x, -eye.y, -eye.z);
-
-        renderCables(level, stack, eye, connections, frustum::isVisible);
-
-        stack.popPose();
+        // On 1.21.1 the level-stage render path produces incorrect cable transforms.
+        // Render cables via the connector block entity renderer instead.
     }
 
     private static void renderCables(final BlockAndTintGetter level, final PoseStack stack, final Vec3 eye, final ArrayList<Connection> connections, final Predicate<AABB> filter) {

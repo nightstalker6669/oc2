@@ -10,7 +10,6 @@ import li.cil.oc2.api.API;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
@@ -793,8 +792,6 @@ public final class Terminal {
         ///////////////////////////////////////////////////////////////
 
         private final Terminal terminal;
-        private final VertexBuffer[] lines = new VertexBuffer[HEIGHT];
-
         private final AtomicInteger dirty = new AtomicInteger(-1);
 
         ///////////////////////////////////////////////////////////////
@@ -807,8 +804,7 @@ public final class Terminal {
 
         @Override
         public void render(final PoseStack stack, final Matrix4f projectionMatrix) {
-            validateLineCache();
-            renderBuffer(stack, projectionMatrix);
+            renderTerminal(stack);
 
             if ((System.currentTimeMillis() + terminal.hashCode()) % 1000 > 500) {
                 renderCursor(stack);
@@ -822,24 +818,13 @@ public final class Terminal {
 
         @Override
         public void close() {
-            for (int i = 0; i < lines.length; i++) {
-                final VertexBuffer line = lines[i];
-                if (line != null) {
-                    line.close();
-                    lines[i] = null;
-                }
-            }
+            dirty.set(0);
         }
 
         ///////////////////////////////////////////////////////////////
 
-        private void renderBuffer(final PoseStack stack, final Matrix4f projectionMatrix) {
+        private void renderTerminal(final PoseStack stack) {
             RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
-            final ShaderInstance shader = GameRenderer.getPositionTexColorShader();
-            if (shader == null) {
-                return;
-            }
-
             RenderSystem.disableCull();
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
@@ -847,58 +832,33 @@ public final class Terminal {
             RenderSystem.resetTextureMatrix();
             RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
             RenderSystem.setShaderTexture(0, LOCATION_FONT_TEXTURE);
+            dirty.set(0);
 
-            for (final VertexBuffer line : lines) {
-                if (line == null) {
+            final BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+            boolean hasGeometry = false;
+            for (int row = 0; row < HEIGHT; row++) {
+                if (!hasRenderableContent(row)) {
                     continue;
                 }
 
-                line.bind();
-                line.drawWithShader(stack.last().pose(), projectionMatrix, shader);
+                hasGeometry = true;
+                stack.pushPose();
+                stack.translate(0f, row * CHAR_HEIGHT, 0f);
+
+                final Matrix4f matrix = stack.last().pose();
+                renderBackground(matrix, buffer, row);
+                renderForeground(matrix, buffer, row);
+
+                stack.popPose();
             }
 
-            VertexBuffer.unbind();
+            if (hasGeometry) {
+                BufferUploader.drawWithShader(buffer.buildOrThrow());
+            }
 
             RenderSystem.disableBlend();
             RenderSystem.enableCull();
             RenderSystem.depthMask(true);
-        }
-
-        private void validateLineCache() {
-            if (dirty.get() == 0) {
-                return;
-            }
-
-            final int mask = dirty.getAndSet(0);
-            for (int row = 0; row < lines.length; row++) {
-                if ((mask & (1 << row)) == 0) {
-                    continue;
-                }
-
-                if (!hasRenderableContent(row)) {
-                    final VertexBuffer line = lines[row];
-                    if (line != null) {
-                        line.close();
-                        lines[row] = null;
-                    }
-                    continue;
-                }
-
-                final Matrix4f matrix = new Matrix4f().translation(0f, row * CHAR_HEIGHT, 0f);
-                final BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-
-                renderBackground(matrix, builder, row);
-                renderForeground(matrix, builder, row);
-
-                if (lines[row] == null) {
-                    lines[row] = new VertexBuffer(VertexBuffer.Usage.STATIC);
-                }
-
-                lines[row].bind();
-                lines[row].upload(builder.buildOrThrow());
-            }
-
-            VertexBuffer.unbind();
         }
 
         private boolean hasRenderableContent(final int row) {

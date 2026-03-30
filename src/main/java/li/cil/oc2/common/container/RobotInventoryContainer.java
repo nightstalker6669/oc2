@@ -10,28 +10,19 @@ import li.cil.oc2.common.vm.VMItemStackHandlers;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.MenuProvider;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraftforge.network.NetworkHooks;
 import net.neoforged.neoforge.items.ItemStackHandler;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class RobotInventoryContainer extends AbstractRobotContainer {
     public static void createServer(final Robot robot, final FixedEnergyStorage energy, final CommonDeviceBusController busController, final ServerPlayer player) {
-        NetworkHooks.openGui(player, new MenuProvider() {
-            @Override
-            public Component getDisplayName() {
-                return robot.getName();
-            }
-
-            @Override
-            public AbstractContainerMenu createMenu(final int id, final Inventory inventory, final Player player) {
-                return new RobotInventoryContainer(id, robot, player, createEnergyInfo(energy, busController));
-            }
-        }, b -> b.writeVarInt(robot.getId()));
+        NetworkHooks.openGui(player, new SimpleMenuProvider(
+            (id, inventory, menuPlayer) -> new RobotInventoryContainer(id, robot, menuPlayer, createEnergyInfo(energy, busController)),
+            robot.getName()
+        ), b -> b.writeVarInt(robot.getId()));
     }
 
     public static RobotInventoryContainer createClient(final int id, final Inventory inventory, final FriendlyByteBuf data) {

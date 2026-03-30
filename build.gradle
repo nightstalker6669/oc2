@@ -51,6 +51,28 @@ final def hasGithubPackageCredentials =
     (project.hasProperty("gpr.user") && project.hasProperty("gpr.key")) ||
         (System.getenv("GITHUB_ACTOR") && System.getenv("GITHUB_TOKEN"))
 final def hasLocalSednaMc = file("../sedna-mc").exists()
+def resolveNewestLocalJar(final String path) {
+    final def directory = file(path)
+    if (!directory.exists()) {
+        return null
+    }
+
+    final def jars = directory.listFiles()?.findAll { final def file ->
+        file.isFile() &&
+            file.name.endsWith(".jar") &&
+            !file.name.endsWith("-sources.jar") &&
+            !file.name.endsWith("-javadoc.jar") &&
+            !file.name.contains("-api")
+    }?.sort { final def a, final def b ->
+        final def byModified = b.lastModified() <=> a.lastModified()
+        byModified != 0 ? byModified : a.name <=> b.name
+    }
+
+    return jars ? jars.first() : null
+}
+final def localCeresJar = resolveNewestLocalJar("../ceres/build/libs")
+final def localSednaJar = resolveNewestLocalJar("../sedna/build/libs")
+final def localBuildrootJar = resolveNewestLocalJar("../buildroot/build/libs")
 final def requestedTaskNames = gradle.startParameter.taskNames.collect { it.toLowerCase(Locale.ROOT) }
 final def hasClientRunRequested = requestedTaskNames.any { it.contains("runclient") }
 final def clientRunConfigDir = layout.projectDirectory.dir("run/config").asFile
@@ -139,6 +161,21 @@ dependencies {
     testImplementation "li.cil.ceres:ceres:0.0.4"
     testImplementation "li.cil.sedna:sedna:2.0.8"
     testImplementation "li.cil.sedna:sedna-buildroot:0.0.8"
+    // VS Code's Gradle Build Server currently drops these composite-build compileOnly
+    // dependencies from the editor classpath. Add direct jar fallbacks so JDT can
+    // resolve local Sedna/Ceres types without changing the normal Gradle build path.
+    if (localCeresJar != null) {
+        compileOnly files(localCeresJar)
+        testImplementation files(localCeresJar)
+    }
+    if (localSednaJar != null) {
+        compileOnly files(localSednaJar)
+        testImplementation files(localSednaJar)
+    }
+    if (localBuildrootJar != null) {
+        compileOnly files(localBuildrootJar)
+        testImplementation files(localBuildrootJar)
+    }
 
     compileOnly "curse.maven:markdown-manual-reimagined-${markdown_manual_project_id}:${markdown_manual_file_id}"
     if (hasClientRunRequested) {

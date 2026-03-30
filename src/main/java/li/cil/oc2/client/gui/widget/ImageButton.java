@@ -71,7 +71,7 @@ public abstract class ImageButton extends AbstractButton {
             return;
         }
 
-        if (isHoveredOrFocused()) {
+        if (isHovered()) {
             if (hoveringStartedAt == 0) {
                 hoveringStartedAt = System.currentTimeMillis();
             }

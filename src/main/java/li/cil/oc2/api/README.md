@@ -1,352 +1,560 @@
-# The OpenComputer II API
+# OC2 Addon API Reference
 
-Welcome to the API of `oc2`, fellow developer! This document will hopefully provide a sufficient overview of what
-integrations this API allows, and how to best implement them. The primary purpose of the API is to allow other mods to
-implement their own devices, to be used by the computers in this mod.
+This document lists the supported addon-facing API surface for the current `1.21.1-neoforge` port.
 
-## The `RPCDevice`
+Scope rules for this reference:
 
-The core of the `RPCDevice` system is the [`RPCDevice`](bus/device/rpc/RPCDevice.java) interface itself. It defines a
-list of [`RPCMethods`](bus/device/rpc/RPCMethod.java), which represent the methods that can be called on the device.
-This is the suggested type of device to add, and allows easily exposing methods in your classes to virtual machines.
+- Included: types under `li.cil.oc2.api` and the explicit IMC constant in `li.cil.oc2.api.API`.
+- Excluded: `li.cil.oc2.common.*`, renderer internals, registry holder internals, and other implementation classes.
+- `package-info.java` files are not listed individually. They only provide package-level docs and defaults.
 
-> If you've seen the APIs of OpenComputers or ComputerCraft before, this should feel fairly familiar.
+If you are integrating with OC2 from another mod, treat anything outside `li.cil.oc2.api` as unstable unless OC2 explicitly documents it elsewhere.
 
-### The `ObjectDevice`
+## Quick integration map
 
-It is perfectly fine to implement these interfaces manually. There is a more convenient way, however, when adding a
-device explicitly for this mod, in the form of the [`ObjectDevice`](bus/device/object/ObjectDevice.java). This class
-allows wrapping a Java object as an `RPCDevice`. Methods to be exposed in the device are defined by adding the
-[`Callback`](bus/device/object/Callback.java) annotation to methods of the object's class.
+Use one of these entry paths:
 
-### Type Names
+- Expose block-attached devices: implement `li.cil.oc2.api.bus.device.provider.BlockDeviceProvider`.
+- Expose item-attached devices: implement `li.cil.oc2.api.bus.device.provider.ItemDeviceProvider`.
+- Expose high-level callable methods: implement `li.cil.oc2.api.bus.device.rpc.RPCDevice`, or more commonly wrap a Java object in `li.cil.oc2.api.bus.device.object.ObjectDevice`.
+- Expose low-level hardware: implement `li.cil.oc2.api.bus.device.vm.VMDevice`.
+- Add extra RPC parameter serializers: send IMC using `li.cil.oc2.api.API.IMC_ADD_RPC_METHOD_PARAMETER_TYPE_ADAPTER`.
+- Expose network, robot, redstone, or terminal-state hooks: implement the relevant interface from `li.cil.oc2.api.capabilities` and expose it via your own NeoForge capability registration.
+- Add your own bus segments or VM containers: implement the bus interfaces in `li.cil.oc2.api.bus`.
 
-In addition to methods, `RPCDevices` provide a list of "type names". These names are meta-data, that can be used by
-programs running in the virtual machines to identify devices. These should be clear and unique, to avoid confusion
-between device types. For example, "machine" would probably be a little too generic, whereas "redstone_furnace" would
-probably be a little better. Note that for all `BlockEntities` providing devices, their registry name is automatically
-added to the list of type names. Equally, for all `Items` providing devices, their registry name is automatically added
-to the list of type names.
+## Stable contract and registration points
 
-### Method Name Collisions
+### `li.cil.oc2.api.API`
 
-All `RPCDevices` found for a particular `BlockEntity` or `Item` will be merged, and present as one singular `RPCDevice`
-to the virtual machine. This means that not only type names are merged, but `RPCMethodGroups` are merged into a single
-list as well. In most cases, it is fine to return each `RPCMethod` as its own `RPCMethodGroup`. For this reason, the
-`RPCMethod` interface extends the `RPCMethodGroup` interface.
+Use: global OC2 constants.
 
-The system supports method overloading to some degree. `RPCMethodGroups` with matching method name and parameter count
-are queried one by one, for a method matching a list of parameters. `RPCMethods` provide a default implementation for
-this, using the declared parameter types to determine if they match.
+Supported constants:
 
-However, RPCs are passed from VM to Java as JSON messages, so some overloads, that are clearly different on the Java
-side, may lead to ambiguity. Specifically, in cases where one JSON serialization can be deserialized into different
-types. Most problematic in this area are `null` values, since they match any object type parameter.
+- `String MOD_ID`
+- `String IMC_ADD_RPC_METHOD_PARAMETER_TYPE_ADAPTER`
 
-> The system does a best-effort attempt: it will try deserializing parameters for ambiguous overloads one after
-> the other, until deserialization for all parameter types succeeds.
+Notes:
 
-To avoid ambiguity, it is recommended to pick clear and unique method names where reasonable. This is particularly true
-for generic `RPCDevices`, e.g. devices providing access to common capabilities, which may be provided by various
-`BlockEntities`. An example for this are the built-in devices for the `IEnergyStorage` capability.
+- `IMC_ADD_RPC_METHOD_PARAMETER_TYPE_ADAPTER` expects an IMC payload supplier that produces `li.cil.oc2.api.imc.RPCMethodParameterTypeAdapter`.
 
-For more control, `RPCMethodGroups` may implement custom override resolution via `findOverload(RPCInvocation)`.
+### `li.cil.oc2.api.util.Registries`
 
-### Device Lifecycle
+Use: registry keys for OC2-managed custom registries.
 
-Where needed, the optional interface methods `mount()`, `unmount()` and `suspend()` may be implemented, to react to
-device lifecycle events. This can be useful in case some state needs to be initialized or reset, when the computer
-starts or stops, or the device is connected to or disconnected from a computer.
+Supported constants:
 
-These methods are called in the following cases:
+- `ResourceKey<Registry<BlockDeviceProvider>> BLOCK_DEVICE_PROVIDER`
+- `ResourceKey<Registry<ItemDeviceProvider>> ITEM_DEVICE_PROVIDER`
+- `ResourceKey<Registry<BlockDeviceData>> BLOCK_DEVICE_DATA`
+- `ResourceKey<Registry<Firmware>> FIRMWARE`
 
-- `mount()` is called, when a device is added to a running computer, or the computer it was added to, starts running. It
-  is also called when a computer resumes running after the chunk it sits in is loaded.
-- `unmount()` is called, when a device removed from a running computer, or the computer it was added to, stop running.
-- `suspend()` is called, when a device is connected to a running computer, and the chunk the computer is in is unloaded.
-  Either due to chunk unload or world unload.
+Notes:
 
-This can be useful for various things. For example:
+- These keys are the current registration path for addon providers and data entries on NeoForge.
 
-- Setting a flag in the block the device is associated with.
-    - Set the flag in `mount()`.
-    - Unset the flag `unmount()`.
-    - Ignore `suspend()`.
-- Track out-of-minecraft resources, such as a file with extra data.
-    - Create and open the file in `mount()`.
-    - Close and delete the file in `unmount()`.
-    - Close the file in `suspend()`.
+## Primary supported entrypoints
 
-### No Active Back-channel
+### Block devices
 
-Unlike some other computer mods (e.g. OpenComputers and ComputerCraft), there is no *active* back-channel in the
-`RPCDevice` API. In other words, it is not possible for `RPCDevices` to raise events in the virtual machines. The only
-way to provide data to the virtual machines is as values returned from exposed methods. Programs running in the virtual
-machines will always have to poll for changed data.
+Primary type: `li.cil.oc2.api.bus.device.provider.BlockDeviceProvider`
 
-## The `BlockDeviceProvider` and `ItemDeviceProvider`
+Use this when a block in the world should expose one or more OC2 devices.
 
-So let's say you have some `RPCDevice` at hand (or a `VMDevice`). Now you want the computer to use it. The core
-functionality that makes `Devices` available to the mod are
-the [`BlockDeviceProvider`](bus/device/provider/BlockDeviceProvider.java) and
-the [`ItemDeviceProvider`](bus/device/provider/ItemDeviceProvider.java) interfaces.
+Calls:
 
-There exists a registry for each, with which all block and item providers must be registered. These registries are
-queried to collect devices for a given block in the world, or an item in a machine inventory.
+- `Invalidatable<Device> getDevice(BlockDeviceQuery query)`
+- `default void unmount(BlockDeviceQuery query, CompoundTag tag)`
 
-### Block Devices
+Behavior requirements:
 
-Blocks devices are queried for all blocks adjacent to a `Bus Interface` that is connected to some computer via some
-`Bus Cable` and another `Bus Interface`. Connected `Bus Cables` with attached `Bus Interfaces` define
-a [`DeviceBus`](bus/DeviceBus.java). Computers collect all devices attached to the `DeviceBus` and make them available
-to the virtual machine they run. Each registered `BlockDeviceProvider` is queried for a block in question, and the found
-`RPCDevices` are aggregated into one `RPCDevice` proxy.
+- For identical query and world state, return the same device instance when possible.
+- If you cannot return the same instance, return equal instances with stable `equals()` / `hashCode()`.
+- Return `Invalidatable.empty()` when no device is available.
 
-> `BusInterfaces` look for `Devices` using `BlockDeviceProviders`.
+Supporting query type: `li.cil.oc2.api.bus.device.provider.BlockDeviceQuery`
 
-The mod comes with a set of convenience `BlockDeviceProviders`, which enable offering devices in various ways. This
-means you don't necessarily have to implement your own provider. The following built-in providers exist:
+Calls:
 
-- `BlockEntities` are queried for the `Device` capability. If there is one, the returned device is used.
-    - This allows optional support for this mod, based on whether it is present or not.
-- `Blocks` and `BlockEntities` are scanned for `Callbacks`. If there are any, they are wrapped in an `ObjectDevice`.
-    - This implies a hard dependency on this mod, due to the use of the `Callback` annotation in your `Block`
-      /`BlockEntity` code.
+- `LevelAccessor getLevel()`
+- `BlockPos getQueryPosition()`
+- `@Nullable Direction getQuerySide()`
 
-### Item Devices
+Supporting wrapper: `li.cil.oc2.api.util.Invalidatable<T>`
 
-Item devices are queried for items inserted into computers and robots. For each `ItemStack` in a device slot, each
-`ItemDeviceProvider` is queried for the item in question, and the found `RPCDevices` are aggregated into one `RPCDevice`
-proxy.
+Calls:
 
-> Note that such items must be tagged with the slot type they fit into, or they cannot be placed into computers and robots.
+- `static <T> Invalidatable<T> empty()`
+- `static <T> Invalidatable<T> of(T value)`
+- `T get()`
+- `boolean isPresent()`
+- `void ifPresent(Consumer<T> consumer)`
+- `<U> Invalidatable<U> mapWithDependency(Function<T, U> mapper)`
+- `void invalidate()`
+- `ListenerToken addListener(Consumer<Invalidatable<T>> listener)`
 
-## The `VMDevice`
+Nested type:
 
-`VMDevices` are low-level, memory-mapped devices, emulating "real" hardware, and thus requiring driver support by the
-operating system running in the virtual machines.
+- `Invalidatable.ListenerToken`
+  - `void removeListener()`
 
-> `VMDevices` are very low-level, and something most people can ignore.
+### Item devices
 
-The core of the `VMDevice` system is the [`VMDevice`](bus/device/vm/VMDevice.java) interface itself. It defines a proxy
-used to load and unload actual emulated hardware. `VMDevices` use
-the [`VMContext`](bus/device/vm/context/VMContext.java) to properly bind hardware to the virtual machine upon
-initialization. This typically includes reserving an address block in memory, possibly hooking up interrupts and
-reserving host memory from the memory tracker. In most cases, `VMDevices` will add a `MemoryMappedDevice` to
-the `MemoryMap`, an interface used by [Sedna], the VM implementation used to run the computers in this mod.
+Primary type: `li.cil.oc2.api.bus.device.provider.ItemDeviceProvider`
 
-On the off chance you wish to add a `VMDevice`, and the existing devices do not suffice for reference, open a discussion
-on Github. I'll skip more details here, since I doubt most people would care, and it might instead scare people off...
+Use this when an item inserted into a computer or robot should expose one or more OC2 devices.
 
-## Examples
+Calls:
 
-These examples are roughly sorted in order of likely usefulness. Most mods will want to maintain a optional integration
-with this mod, instead of a hard dependency, so these examples are shown first.
+- `Optional<ItemDevice> getDevice(ItemDeviceQuery query)`
+- `default int getEnergyConsumption(ItemDeviceQuery query)`
+- `default void unmount(@Nullable ItemDeviceQuery query, CompoundTag tag)`
 
-### Block Device for own `BlockEntity`
+Supporting query type: `li.cil.oc2.api.bus.device.provider.ItemDeviceQuery`
 
-In this example, a device is made available for a custom `BlockEntity`.
+Calls:
 
-Using capabilities:
+- `Optional<BlockEntity> getContainerBlockEntity()`
+- `Optional<Entity> getContainerEntity()`
+- `ItemStack getItemStack()`
+
+Item-specific device type: `li.cil.oc2.api.bus.device.ItemDevice`
+
+Calls:
+
+- `default void exportToItemStack(CompoundTag nbt)`
+- `default void importFromItemStack(CompoundTag nbt)`
+
+Notes:
+
+- Use `exportToItemStack()` / `importFromItemStack()` for state that should survive the item leaving and re-entering a machine.
+- Slot compatibility is controlled by `DeviceType` item tags.
+
+### High-level RPC devices
+
+Primary type: `li.cil.oc2.api.bus.device.rpc.RPCDevice`
+
+Use this when you want the VM to call named methods on your device.
+
+Calls:
+
+- `List<String> getTypeNames()`
+- `List<RPCMethodGroup> getMethodGroups()`
+- `default void mount()`
+- `default void unmount()`
+
+Base device type: `li.cil.oc2.api.bus.device.Device`
+
+Calls:
+
+- `default void dispose()`
+- `default CompoundTag serializeNBT(HolderLookup.Provider provider)`
+- `default CompoundTag serializeNBT()`
+- `default void deserializeNBT(HolderLookup.Provider provider, CompoundTag tag)`
+- `default void deserializeNBT(CompoundTag tag)`
+
+Method group type: `li.cil.oc2.api.bus.device.rpc.RPCMethodGroup`
+
+Calls:
+
+- `String getName()`
+- `default Set<RPCMethod> getOverloads()`
+- `Optional<RPCMethod> findOverload(RPCInvocation invocation)`
+
+Method type: `li.cil.oc2.api.bus.device.rpc.RPCMethod`
+
+Calls:
+
+- `boolean isSynchronized()`
+- `Class<?> getReturnType()`
+- `RPCParameter[] getParameters()`
+- `@Nullable Object invoke(RPCInvocation invocation) throws Throwable`
+- `default Optional<String> getDescription()`
+- `default Optional<String> getReturnValueDescription()`
+- inherited `getName()`, `getOverloads()`, `findOverload(...)`
+
+Invocation type: `li.cil.oc2.api.bus.device.rpc.RPCInvocation`
+
+Calls:
+
+- `JsonArray getParameters()`
+- `Gson getGson()`
+- `Optional<Object[]> tryDeserializeParameters(RPCParameter... parameterTypes)`
+
+Parameter type: `li.cil.oc2.api.bus.device.rpc.RPCParameter`
+
+Calls:
+
+- `Class<?> getType()`
+- `default Optional<String> getName()`
+- `default Optional<String> getDescription()`
+
+Convenience base class: `li.cil.oc2.api.bus.device.rpc.AbstractRPCMethod`
+
+Use:
+
+- Subclass it when you want a manual `RPCMethod` implementation without re-implementing the basic metadata accessors.
+
+Subclass entrypoint:
+
+- `protected abstract @Nullable Object invoke(Object... parameters) throws Throwable`
+
+Reflection-based convenience path: `li.cil.oc2.api.bus.device.object.ObjectDevice`
+
+Use:
+
+- Wrap a Java object and let OC2 turn `@Callback` methods into an `RPCDevice`.
+
+Constructors:
+
+- `ObjectDevice(Object object, List<String> typeNames)`
+- `ObjectDevice(Object object, String... typeNames)`
+- `ObjectDevice(Object object, @Nullable String typeName)`
+- `ObjectDevice(Object object)`
+
+Calls:
+
+- inherited `getTypeNames()`, `getMethodGroups()`, `mount()`, `unmount()`, `dispose()`
+
+Reflection helper: `li.cil.oc2.api.bus.device.object.Callbacks`
+
+Calls:
+
+- `static List<RPCMethodGroup> collectMethods(Object methodContainer)`
+- `static boolean hasMethods(Object object)`
+
+Annotations and helper interfaces for `ObjectDevice`:
+
+- `li.cil.oc2.api.bus.device.object.Callback`
+  - `boolean synchronize() default true`
+  - `String name() default ""`
+  - `String description() default ""`
+  - `String returnValueDescription() default ""`
+- `li.cil.oc2.api.bus.device.object.Parameter`
+  - `String value()`
+  - `String description() default ""`
+- `li.cil.oc2.api.bus.device.object.NamedDevice`
+  - `Collection<String> getDeviceTypeNames()`
+- `li.cil.oc2.api.bus.device.object.LifecycleAwareDevice`
+  - `default void onDeviceMounted()`
+  - `default void onDeviceUnmounted()`
+  - `default void onDeviceDisposed()`
+- `li.cil.oc2.api.bus.device.object.DocumentedDevice`
+  - `void getDeviceDocumentation(DeviceVisitor visitor)`
+  - nested `DeviceVisitor`
+    - `CallbackVisitor visitCallback(String callbackName)`
+  - nested `CallbackVisitor`
+    - `CallbackVisitor description(String value)`
+    - `CallbackVisitor returnValueDescription(String value)`
+    - `CallbackVisitor parameterDescription(String parameterName, String value)`
+
+### Low-level VM devices
+
+Primary type: `li.cil.oc2.api.bus.device.vm.VMDevice`
+
+Use this when you want to attach memory-mapped hardware directly to the VM.
+
+Calls:
+
+- `VMDeviceLoadResult mount(VMContext context)`
+- `void unmount()`
+- inherited `dispose()` and NBT serialization methods from `Device`
+
+Load result: `li.cil.oc2.api.bus.device.vm.VMDeviceLoadResult`
+
+Factory methods:
+
+- `static VMDeviceLoadResult success()`
+- `static VMDeviceLoadResult fail()`
+
+Calls:
+
+- `boolean wasSuccessful()`
+- `VMDeviceLoadResult withErrorMessage(Component value)`
+- `@Nullable Component getErrorMessage()`
+
+Marker subtype: `li.cil.oc2.api.bus.device.vm.FirmwareLoader`
+
+Use:
+
+- Marker for VM devices that provide required firmware early in startup.
+
+VM context: `li.cil.oc2.api.bus.device.vm.context.VMContext`
+
+Calls:
+
+- `MemoryMap getMemoryMap()`
+- `InterruptController getInterruptController()`
+- `MemoryRangeAllocator getMemoryRangeAllocator()`
+- `InterruptAllocator getInterruptAllocator()`
+- `MemoryAllocator getMemoryAllocator()`
+- `VMLifecycleEventBus getEventBus()`
+
+Allocators and event bus:
+
+- `li.cil.oc2.api.bus.device.vm.context.MemoryAllocator`
+  - `boolean claimMemory(int size)`
+- `li.cil.oc2.api.bus.device.vm.context.MemoryRangeAllocator`
+  - `boolean claimMemoryRange(long address, MemoryMappedDevice device)`
+  - `OptionalLong claimMemoryRange(MemoryMappedDevice device)`
+- `li.cil.oc2.api.bus.device.vm.context.InterruptAllocator`
+  - `boolean claimInterrupt(int interrupt)`
+  - `OptionalInt claimInterrupt()`
+- `li.cil.oc2.api.bus.device.vm.context.VMLifecycleEventBus`
+  - `void register(Object subscriber)`
+
+Lifecycle events:
+
+- `li.cil.oc2.api.bus.device.vm.event.VMInitializingEvent`
+  - record component: `long programStartAddress`
+- `li.cil.oc2.api.bus.device.vm.event.VMResumedRunningEvent`
+  - no fields
+- `li.cil.oc2.api.bus.device.vm.event.VMSynchronizeEvent`
+  - no fields
+- `li.cil.oc2.api.bus.device.vm.event.VMInitializationException`
+  - constructors:
+    - `VMInitializationException(Component message)`
+    - `VMInitializationException()`
+  - calls:
+    - `Optional<Component> getErrorMessage()`
+
+### Capabilities and utility types
+
+These are stable interface contracts. OC2 may look for them in specific integration paths, but OC2 does not expose a generic stable capability token API under `li.cil.oc2.api`.
+
+- `li.cil.oc2.api.capabilities.NetworkInterface`
+  - `@Nullable byte[] readEthernetFrame()`
+  - `void writeEthernetFrame(NetworkInterface source, byte[] frame, int timeToLive)`
+- `li.cil.oc2.api.capabilities.RedstoneEmitter`
+  - `int getRedstoneOutput()`
+- `li.cil.oc2.api.capabilities.Robot`
+  - `ItemStackHandler getInventory()`
+  - `int getSelectedSlot()`
+  - `void setSelectedSlot(int value)`
+- `li.cil.oc2.api.capabilities.TerminalUserProvider`
+  - `Iterable<Player> getTerminalUsers()`
+
+Item slot typing:
+
+- `li.cil.oc2.api.bus.device.DeviceType`
+  - `ResourceKey<Registry<DeviceType>> REGISTRY`
+  - `TagKey<Item> getTag()`
+  - `ResourceLocation getBackgroundIcon()`
+  - `Component getName()`
+- `li.cil.oc2.api.bus.device.DeviceTypes`
+  - built-in constants:
+    - `MEMORY`
+    - `HARD_DRIVE`
+    - `FLASH_MEMORY`
+    - `CARD`
+    - `ROBOT_MODULE`
+    - `FLOPPY`
+    - `NETWORK_TUNNEL`
+
+Directional helper enums:
+
+- `li.cil.oc2.api.util.Side`
+  - canonical values: `DOWN`, `UP`, `NORTH`, `SOUTH`, `WEST`, `EAST`
+  - aliases: `down`, `d`, `up`, `u`, `north`, `n`, `back`, `b`, `south`, `s`, `front`, `f`, `west`, `w`, `left`, `l`, `east`, `e`, `right`, `r`
+  - `Direction getDirection()`
+- `li.cil.oc2.api.util.RobotOperationSide`
+  - canonical values: `FRONT`, `UP`, `DOWN`
+  - aliases: `front`, `f`, `up`, `u`, `down`, `d`
+  - `static Direction toGlobal(Entity entity, @Nullable RobotOperationSide side)`
+
+### Custom bus topology APIs
+
+Most addon mods do not need this section. It is only relevant if you are implementing your own OC2 bus cable, bus segment, or VM container.
+
+- `li.cil.oc2.api.bus.DeviceBus`
+  - `Collection<Device> getDevices()`
+  - `void scheduleScan()`
+- `li.cil.oc2.api.bus.DeviceBusElement`
+  - `void addController(DeviceBusController controller)`
+  - `void removeController(DeviceBusController controller)`
+  - `Collection<DeviceBusController> getControllers()`
+  - `Optional<Collection<LazyOptional<DeviceBusElement>>> getNeighbors()`
+  - `Collection<Device> getLocalDevices()`
+  - `Optional<UUID> getDeviceIdentifier(Device device)`
+  - `default double getEnergyConsumption()`
+- `li.cil.oc2.api.bus.BlockDeviceBusElement`
+  - `@Nullable LevelAccessor getLevel()`
+  - `BlockPos getPosition()`
+- `li.cil.oc2.api.bus.DeviceBusController`
+  - nested enum `ScanReason`
+    - `BUS_CHANGE`
+    - `BUS_ERROR`
+  - `void scheduleBusScan(ScanReason reason)`
+  - `default void scheduleBusScan()`
+  - `void scanDevices()`
+  - `Set<Device> getDevices()`
+  - `Set<UUID> getDeviceIdentifiers(Device device)`
+
+### Data registries and IMC
+
+Block device base data:
+
+- `li.cil.oc2.api.bus.device.data.BlockDeviceData`
+  - `BlockDevice getBlockDevice()`
+  - `Component getDisplayName()`
+
+Firmware data:
+
+- `li.cil.oc2.api.bus.device.data.Firmware`
+  - `boolean run(MemoryMap memory, long startAddress)`
+  - `Component getDisplayName()`
+
+IMC payload:
+
+- `li.cil.oc2.api.imc.RPCMethodParameterTypeAdapter`
+  - record components:
+    - `Class<?> type`
+    - `Object typeAdapter`
+
+## Current NeoForge examples
+
+### Register a block device provider
 
 ```java
-import li.cil.oc2.api.bus.device.object.Callback;
-import li.cil.oc2.api.bus.device.object.ObjectDevice;
-import li.cil.oc2.api.bus.device.rpc.RPCDevice;
-import net.minecraft.core.Direction;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.fml.ModList;
-
-class ModBlockEntity extends BlockEntity {
-    public int getMagicValue() {
-        // ...
-    }
-
-    @Override
-    public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
-        if (ModList.get().isLoaded("oc2")) {
-            // Note: you can also store this and invalidate the capability to remove the
-            // device/trigger the device bus to scan for changes in available devices.
-            LazyOptional<T> device = getDeviceCapability();
-            if (device.isPresent()) {
-                return device;
-            }
-        }
-        return super.getCapability(cap, side);
-    }
-
-    private <T> LazyOptional<T> getDeviceCapability(Capability<T> cap) {
-        if (cap == Integration.DEVICE_CAPABILITY) {
-            LazyOptional.of(() -> Integration.createDevice(this)).cast();
-        } else {
-            return LazyOptional.empty();
-        }
-    }
-}
-
-class Integration {
-    public static final Capability<Device> DEVICE_CAPABILITY = CapabilityManager.get(new CapabilityToken<>() { });
-
-    public static RPCDevice createDevice(ModBlockEntity blockEntity) {
-        return new ObjectDevice(new ModBlockEntityDevice(blockEntity));
-    }
-
-    // Note: this being a record is relevant, as it implements equals() for us. When manually implementing devices,
-    // overriding equals() is strongly recommended, to allow newly picked up devices to be matched to previously
-    // existing devices. Otherwise, the devices will technically be removed and re-added every time the device bus
-    // scans for device changes. This is particularly relevant when using the lifecycle methods mount(), unmount()
-    // and suspend() (e.g. if we were to implement LifecycleAwareDevice on this record).
-    record ModBlockEntityDevice(ModBlockEntity blockEntity) {
-        @Callback
-        public int getMagicValue() {
-            return blockEntity.getMagicValue();
-        }
-    }
-}
-```
-
-Using the `Callback` annotation in the `BlockEntity` (hard dependency):
-
-```java
-import li.cil.oc2.api.bus.device.object.Callback;
-import net.minecraft.world.level.block.entity.BlockEntity;
-
-class ModBlockEntity extends BlockEntity {
-    @Callback
-    public int getMagicValue() {
-        // ...
-    }
-}
-```
-
-Using a custom `BlockDeviceProvider` is also possible, this is equivalent to the following example, on how to add
-devices to third-party `BlockEntities`.
-
-### Block Device for a Third-Party `BlockEntity`
-
-In this example, a simple device providing a single method, `squareRoot`, is made available for the `FurnaceBlockEntity`
-. As long as the registration of the `BlockDeviceProvider` is gated behind a check, whether `oc2` is present, this is a
-soft dependency.
-
-Using `ObjectDevice`:
-
-```java
-import li.cil.oc2.api.bus.device.object.Callback;
-import li.cil.oc2.api.bus.device.object.ObjectDevice;
-import li.cil.oc2.api.bus.device.rpc.RPCDevice;
-import net.minecraft.world.level.block.entity.BlockEntity;
-
-class MyCalculatorDevice {
-    @Callback(synchronize = false)
-    public int squareRoot(int value) {
-        if (value < 0) throw new IllegalArgumentException("Invalid input value!");
-        return Math.sqrt(value);
-    }
-}
-
-class ModDeviceProvider extends ForgeRegistryEntry<BlockDeviceProvider> implements BlockDeviceProvider {
-    @Override
-    public Invalidatable<Device> getDevice(BlockDeviceQuery query) {
-        // Note: optionally check other conditions, such as settings, on whether to just return empty().
-        BlockEntity blockEntity = query.getLevel().getBlockEntity(query.getQueryPosition());
-        if (blockEntity instanceof FurnaceBlockEntity) {
-            return Invalidatable.of(new ObjectDevice(new MyCalculatorDevice(), "my_calculator_device"));
-        } else {
-            return Invalidatable.empty();
-        }
-    }
-}
-```
-
-Using the `RPCDevice` and `RPCMethods` interfaces directly:
-
-```java
+import li.cil.oc2.api.util.Registries;
+import li.cil.oc2.api.util.Invalidatable;
 import li.cil.oc2.api.bus.device.Device;
+import li.cil.oc2.api.bus.device.object.Callback;
+import li.cil.oc2.api.bus.device.object.ObjectDevice;
 import li.cil.oc2.api.bus.device.provider.BlockDeviceProvider;
 import li.cil.oc2.api.bus.device.provider.BlockDeviceQuery;
-import li.cil.oc2.api.bus.device.rpc.RPCDevice;
-import li.cil.oc2.api.bus.device.rpc.RPCMethod;
-import li.cil.oc2.api.bus.device.rpc.RPCMethodGroup;
-import li.cil.oc2.api.bus.device.rpc.RPCParameter;
-import li.cil.oc2.api.util.Invalidatable;
-import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraftforge.registries.ForgeRegistryEntry;
 
-import java.util.Collections;
-import java.util.List;
+public final class MyOc2Integration {
+    private static final DeferredRegister<BlockDeviceProvider> BLOCK_DEVICE_PROVIDERS =
+        DeferredRegister.create(Registries.BLOCK_DEVICE_PROVIDER, "my_mod");
 
-class ModDevice implements RPCDevice {
-    @Override
-    public List<String> getTypeNames() {
-        return Collections.singletonList("my_calculator_device");
+    public static void init(final IEventBus modBus) {
+        BLOCK_DEVICE_PROVIDERS.register("my_block_device", MyBlockDeviceProvider::new);
+        BLOCK_DEVICE_PROVIDERS.register(modBus);
     }
 
-    @Override
-    public List<RPCMethodGroup> getMethodGroups() {
-        return Collections.singletonList(new RPCMethod() {
-            @Override
-            public String getName() {
-                return "squareRoot";
+    public static final class MyBlockDeviceProvider extends ForgeRegistryEntry<BlockDeviceProvider> implements BlockDeviceProvider {
+        @Override
+        public Invalidatable<Device> getDevice(final BlockDeviceQuery query) {
+            if (!shouldExposeDevice(query)) {
+                return Invalidatable.empty();
             }
 
-            @Override
-            public boolean isSynchronized() {
-                return false;
-            }
-
-            @Override
-            public Class<?> getReturnType() {
-                return int.class;
-            }
-
-            @Override
-            public RPCParameter[] getParameters() {
-                return new RPCParameter[]{() -> int.class};
-            }
-
-            @Override
-            public Object invoke(RPCInvocation invocation) {
-                int arg = invocation.getParameters().get(0).getAsInt();
-                if (arg < 0) throw new IllegalArgumentException("Invalid input value!");
-                return Math.sqrt(arg);
-            }
-        });
-    }
-}
-
-class ModDeviceProvider extends ForgeRegistryEntry<BlockDeviceProvider> implements BlockDeviceProvider {
-    @Override
-    public Invalidatable<Device> getDevice(BlockDeviceQuery query) {
-        // Note: optionally check other conditions, such as settings, on whether to just return empty().
-        BlockEntity blockEntity = query.getLevel().getBlockEntity(query.getQueryPosition());
-        if (blockEntity instanceof FurnaceBlockEntity) {
-            return Invalidatable.of(new ModDevice());
-        } else {
-            return Invalidatable.empty();
+            return Invalidatable.of(new ObjectDevice(new MyDevice(), "my_device"));
         }
     }
-}
-```
 
-Shared device provider registration:
+    public static final class MyDevice {
+        @Callback(synchronize = false)
+        public int square(final int value) {
+            return value * value;
+        }
+    }
 
-```java
-import li.cil.oc2.api.bus.device.provider.BlockDeviceProvider;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
-
-class Providers {
-    static final DeferredRegister<BlockDeviceProvider> BLOCK_DEVICE_PROVIDERS =
-        DeferredRegister.create(BlockDeviceProvider.class, "my_mod_id");
-
-    // Called from mod initialization, if oc2 is present.
-    static void initialize() {
-        BLOCK_DEVICE_PROVIDERS.register("my_calculator_device", ModDeviceProvider::new);
-
-        BLOCK_DEVICE_PROVIDERS.register(FMLJavaModLoadingContext.get().getModEventBus());
+    private static boolean shouldExposeDevice(final BlockDeviceQuery query) {
+        return true;
     }
 }
 ```
 
-[Sedna]: https://github.com/fnuecke/sedna
+### Register an item device provider
+
+```java
+import li.cil.oc2.api.util.Registries;
+import li.cil.oc2.api.bus.device.ItemDevice;
+import li.cil.oc2.api.bus.device.object.ObjectDevice;
+import li.cil.oc2.api.bus.device.provider.ItemDeviceProvider;
+import li.cil.oc2.api.bus.device.provider.ItemDeviceQuery;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraftforge.registries.ForgeRegistryEntry;
+
+import java.util.Optional;
+
+public final class MyOc2Items {
+    private static final DeferredRegister<ItemDeviceProvider> ITEM_DEVICE_PROVIDERS =
+        DeferredRegister.create(Registries.ITEM_DEVICE_PROVIDER, "my_mod");
+
+    public static void init(final IEventBus modBus) {
+        ITEM_DEVICE_PROVIDERS.register("my_item_device", MyItemDeviceProvider::new);
+        ITEM_DEVICE_PROVIDERS.register(modBus);
+    }
+
+    public static final class MyItemDeviceProvider extends ForgeRegistryEntry<ItemDeviceProvider> implements ItemDeviceProvider {
+        @Override
+        public Optional<ItemDevice> getDevice(final ItemDeviceQuery query) {
+            if (!query.getItemStack().is(MyItems.MY_CARD)) {
+                return Optional.empty();
+            }
+
+            return Optional.of(new ObjectDevice(new MyCallbacks(), "my_item_device"));
+        }
+
+        @Override
+        public int getEnergyConsumption(final ItemDeviceQuery query) {
+            return 2;
+        }
+    }
+
+    public static final class MyCallbacks {
+    }
+}
+```
+
+If you need item-backed persisted state, return your own class that implements `ItemDevice` and, if needed, `RPCDevice` or `VMDevice`. `ObjectDevice` already implements `ItemDevice`, but it does not provide custom `exportToItemStack()` or `importFromItemStack()` behavior by itself.
+
+### Implement a VM device
+
+```java
+import li.cil.oc2.api.bus.device.vm.VMDevice;
+import li.cil.oc2.api.bus.device.vm.VMDeviceLoadResult;
+import li.cil.oc2.api.bus.device.vm.context.VMContext;
+import li.cil.sedna.api.device.MemoryMappedDevice;
+
+public final class MyVmDevice implements VMDevice {
+    @Override
+    public VMDeviceLoadResult mount(final VMContext context) {
+        final MemoryMappedDevice device = createDevice();
+        return context.getMemoryRangeAllocator().claimMemoryRange(device).isPresent()
+            ? VMDeviceLoadResult.success()
+            : VMDeviceLoadResult.fail();
+    }
+
+    @Override
+    public void unmount() {
+    }
+
+    private static MemoryMappedDevice createDevice() {
+        throw new UnsupportedOperationException();
+    }
+}
+```
+
+### Send an RPC parameter type adapter over IMC
+
+```java
+import li.cil.oc2.api.API;
+import li.cil.oc2.api.imc.RPCMethodParameterTypeAdapter;
+import net.neoforged.fml.InterModComms;
+
+public final class MyOc2Imc {
+    public static void send() {
+        InterModComms.sendTo(
+            API.MOD_ID,
+            API.IMC_ADD_RPC_METHOD_PARAMETER_TYPE_ADAPTER,
+            () -> new RPCMethodParameterTypeAdapter(MyType.class, new MyTypeAdapter())
+        );
+    }
+}
+```
+
+## What is intentionally not in the stable addon contract
+
+- Anything under `li.cil.oc2.common.*`
+- Internal provider registries and registry holder classes
+- Renderer, GUI, and networking implementation classes
+- A generic public `DEVICE_CAPABILITY` token
+
+If you need functionality that is only reachable through internal OC2 classes, document that as an explicit hard dependency on current OC2 internals, not as stable API usage.

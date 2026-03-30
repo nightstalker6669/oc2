@@ -4,6 +4,7 @@ package net.minecraftforge.registries;
 
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 
@@ -28,6 +29,10 @@ public final class DeferredRegister<T> {
 
     public <I extends T> RegistryObject<I> register(final String name, final Supplier<? extends I> supplier) {
         return new RegistryObject<>(delegate.register(name, supplier));
+    }
+
+    public void addAlias(final ResourceLocation from, final ResourceLocation to) {
+        delegate.addAlias(from, to);
     }
 
     public void register(final IEventBus bus) {

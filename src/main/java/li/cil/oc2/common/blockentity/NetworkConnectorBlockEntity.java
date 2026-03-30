@@ -207,9 +207,7 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
 
         final ListTag connections = new ListTag();
         for (final BlockPos position : connectorPositions) {
-            final CompoundTag connectionTag = new CompoundTag();
-            connectionTag.put("position", NbtUtils.writeBlockPos(position));
-            connections.add(connectionTag);
+            connections.add(writeConnectionTag(position, false));
         }
         tag.put(CONNECTIONS_TAG_NAME, connections);
 
@@ -223,7 +221,7 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
         final ListTag connections = tag.getList(CONNECTIONS_TAG_NAME, NBTTagIds.TAG_COMPOUND);
         for (int i = 0; i < Math.min(connections.size(), MAX_CONNECTION_COUNT); i++) {
             final CompoundTag connectionTag = connections.getCompound(i);
-            final BlockPos position = NbtUtils.readBlockPos(connectionTag, "position").orElse(BlockPos.ZERO);
+            final BlockPos position = readConnectionPosition(connectionTag);
             connectorPositions.add(position);
             dirtyConnectors.add(position);
         }
@@ -235,12 +233,7 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
 
         final ListTag connections = new ListTag();
         for (final BlockPos position : connectorPositions) {
-            final CompoundTag connectionTag = new CompoundTag();
-            connectionTag.put("position", NbtUtils.writeBlockPos(position));
-            if (ownedCables.contains(position)) {
-                connectionTag.putBoolean(IS_OWNER_TAG_NAME, true);
-            }
-            connections.add(connectionTag);
+            connections.add(writeConnectionTag(position, ownedCables.contains(position)));
         }
         tag.put(CONNECTIONS_TAG_NAME, connections);
     }
@@ -252,7 +245,7 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
         final ListTag connections = tag.getList(CONNECTIONS_TAG_NAME, NBTTagIds.TAG_COMPOUND);
         for (int i = 0; i < Math.min(connections.size(), MAX_CONNECTION_COUNT); i++) {
             final CompoundTag connectionTag = connections.getCompound(i);
-            final BlockPos position = NbtUtils.readBlockPos(connectionTag, "position").orElse(BlockPos.ZERO);
+            final BlockPos position = readConnectionPosition(connectionTag);
             connectorPositions.add(position);
             dirtyConnectors.add(position);
             if (connectionTag.getBoolean(IS_OWNER_TAG_NAME)) {
@@ -262,14 +255,10 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
     }
 
     public AABB getRenderBoundingBox() {
-        if (Minecraft.useShaderTransparency()) {
-            return AABB.encapsulatingFullBlocks(
-                getBlockPos().offset(-MAX_CONNECTION_DISTANCE, -MAX_CONNECTION_DISTANCE, -MAX_CONNECTION_DISTANCE),
-                getBlockPos().offset(1 + MAX_CONNECTION_DISTANCE, 1 + MAX_CONNECTION_DISTANCE, 1 + MAX_CONNECTION_DISTANCE)
-            );
-        } else {
-            return new AABB(getBlockPos());
-        }
+        return AABB.encapsulatingFullBlocks(
+            getBlockPos().offset(-MAX_CONNECTION_DISTANCE, -MAX_CONNECTION_DISTANCE, -MAX_CONNECTION_DISTANCE),
+            getBlockPos().offset(1 + MAX_CONNECTION_DISTANCE, 1 + MAX_CONNECTION_DISTANCE, 1 + MAX_CONNECTION_DISTANCE)
+        );
     }
 
     ///////////////////////////////////////////////////////////////////
@@ -407,6 +396,42 @@ public final class NetworkConnectorBlockEntity extends ModBlockEntity implements
 
         return hitAB.getType() != HitResult.Type.MISS ||
             hitBA.getType() != HitResult.Type.MISS;
+    }
+
+    private static CompoundTag writeConnectionTag(final BlockPos position, final boolean isOwner) {
+        final CompoundTag connectionTag = new CompoundTag();
+        connectionTag.putInt("X", position.getX());
+        connectionTag.putInt("Y", position.getY());
+        connectionTag.putInt("Z", position.getZ());
+        connectionTag.put("position", NbtUtils.writeBlockPos(position));
+        if (isOwner) {
+            connectionTag.putBoolean(IS_OWNER_TAG_NAME, true);
+        }
+        return connectionTag;
+    }
+
+    private static BlockPos readConnectionPosition(final CompoundTag connectionTag) {
+        if (connectionTag.contains("position", NBTTagIds.TAG_INT_ARRAY)) {
+            return NbtUtils.readBlockPos(connectionTag, "position").orElseGet(() -> readLegacyConnectionPosition(connectionTag));
+        }
+
+        return readLegacyConnectionPosition(connectionTag);
+    }
+
+    private static BlockPos readLegacyConnectionPosition(final CompoundTag connectionTag) {
+        if (connectionTag.contains("X", NBTTagIds.TAG_ANY_NUMERIC) &&
+            connectionTag.contains("Y", NBTTagIds.TAG_ANY_NUMERIC) &&
+            connectionTag.contains("Z", NBTTagIds.TAG_ANY_NUMERIC)) {
+            return new BlockPos(connectionTag.getInt("X"), connectionTag.getInt("Y"), connectionTag.getInt("Z"));
+        }
+
+        if (connectionTag.contains("x", NBTTagIds.TAG_ANY_NUMERIC) &&
+            connectionTag.contains("y", NBTTagIds.TAG_ANY_NUMERIC) &&
+            connectionTag.contains("z", NBTTagIds.TAG_ANY_NUMERIC)) {
+            return new BlockPos(connectionTag.getInt("x"), connectionTag.getInt("y"), connectionTag.getInt("z"));
+        }
+
+        return BlockPos.ZERO;
     }
 
     private void onConnectedPositionsChanged() {

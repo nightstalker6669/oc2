@@ -9,6 +9,7 @@
   ],
   "client": [
     "FrustumMixin",
+    "GameRendererAccessor",
     "LevelRendererMixin",
     "MinecraftMixin"
   ],

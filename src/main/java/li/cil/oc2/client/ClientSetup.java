@@ -22,6 +22,7 @@ import li.cil.oc2.common.entity.Entities;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
@@ -41,6 +42,7 @@ public final class ClientSetup {
 
             ItemBlockRenderTypes.setRenderLayer(Blocks.BUS_CABLE.get(), renderType -> true);
             Minecraft.getInstance().getBlockColors().register(new BusCableBlockColor(), Blocks.BUS_CABLE.get());
+            NeoForge.EVENT_BUS.register(ProjectorDepthRenderer.class);
         });
     }
 
@@ -63,6 +65,7 @@ public final class ClientSetup {
         event.registerBlockEntityRenderer(BlockEntities.COMPUTER.get(), ComputerRenderer::new);
         event.registerBlockEntityRenderer(BlockEntities.DISK_DRIVE.get(), DiskDriveRenderer::new);
         event.registerBlockEntityRenderer(BlockEntities.CHARGER.get(), ChargerRenderer::new);
+        event.registerBlockEntityRenderer(BlockEntities.NETWORK_CONNECTOR.get(), NetworkConnectorRenderer::new);
         event.registerBlockEntityRenderer(BlockEntities.PROJECTOR.get(), ProjectorRenderer::new);
         event.registerEntityRenderer(Entities.ROBOT.get(), RobotRenderer::new);
     }

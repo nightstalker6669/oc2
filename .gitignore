@@ -35,7 +35,8 @@ forge*changelog.txt
 /src/generated/
 
 #vscode
-.vscode
+.vscode/*
+!.vscode/settings.json
 
 # Don't ignore bin from scripts
 !/src/main/scripts/bin/

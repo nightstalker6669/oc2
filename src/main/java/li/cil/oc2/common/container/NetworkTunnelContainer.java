@@ -10,30 +10,21 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkHooks;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.UUID;
 
 public final class NetworkTunnelContainer extends AbstractContainer {
     public static void createServer(final ServerPlayer player, final InteractionHand hand) {
-        NetworkHooks.openGui(player, new MenuProvider() {
-            @Override
-            public Component getDisplayName() {
-                return player.getItemInHand(hand).getItem().getDescription();
-            }
-
-            @Override
-            public AbstractContainerMenu createMenu(final int id, final Inventory inventory, final Player player) {
-                return new NetworkTunnelContainer(id, player, hand);
-            }
-        }, b -> b.writeEnum(hand));
+        NetworkHooks.openGui(player, new SimpleMenuProvider(
+            (id, inventory, menuPlayer) -> new NetworkTunnelContainer(id, menuPlayer, hand),
+            player.getItemInHand(hand).getItem().getDescription()
+        ), b -> b.writeEnum(hand));
     }
 
     public static NetworkTunnelContainer createClient(final int id, final Inventory inventory, final FriendlyByteBuf data) {
